@@ -8,23 +8,25 @@
 /storage/framework/views/*
 /bootstrap/cache/*
 .env
+src/.env
 .env.*.local
 
 # --- Logs ---
-/*.log
-/storage/logs/*.log
+*.log
+storage/logs/*.log
 npm-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
 # --- Docker ---
+docker-compose.yml
 docker-compose.override.yml
 .env.docker
 *.pid
 *.seed
 *.sql
 
-# --- Certbot (jangan commit private keys) ---
+# --- Certbot (private keys & challenges) ---
 certbot/letsencrypt
 certbot/www/.well-known/acme-challenge/*
 
@@ -33,3 +35,4 @@ certbot/www/.well-known/acme-challenge/*
 .idea
 .DS_Store
 Thumbs.db
+
