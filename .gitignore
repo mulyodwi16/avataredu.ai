@@ -1,0 +1,35 @@
+# --- Laravel ---
+/vendor
+/node_modules
+/public/storage
+/storage/*.key
+/storage/framework/cache/*
+/storage/framework/sessions/*
+/storage/framework/views/*
+/bootstrap/cache/*
+.env
+.env.*.local
+
+# --- Logs ---
+/*.log
+/storage/logs/*.log
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# --- Docker ---
+docker-compose.override.yml
+.env.docker
+*.pid
+*.seed
+*.sql
+
+# --- Certbot (jangan commit private keys) ---
+certbot/letsencrypt
+certbot/www/.well-known/acme-challenge/*
+
+# --- IDE / OS ---
+.vscode
+.idea
+.DS_Store
+Thumbs.db
