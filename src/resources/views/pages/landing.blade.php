@@ -15,9 +15,17 @@
                     <a href="#browse"
                         class="bg-blue-600 text-white px-6 py-2.5 rounded-lg font-semibold hover:bg-blue-700">Browse
                         Modules</a>
-                    <a href="{{ route('login') }}"
-                        class="bg-white text-gray-800 px-6 py-2.5 rounded-lg font-semibold border border-gray-300 hover:bg-gray-50">Sign
-                        in with Google</a>
+                    @guest
+                        <a href="{{ route('login') }}"
+                            class="bg-white text-gray-800 px-6 py-2.5 rounded-lg font-semibold border border-gray-300 hover:bg-gray-50">
+                            Sign in with Google
+                        </a>
+                    @else
+                        <a href="{{ route('dashboard') }}"
+                            class="bg-white text-gray-800 px-6 py-2.5 rounded-lg font-semibold border border-gray-300 hover:bg-gray-50">
+                            Go to Dashboard
+                        </a>
+                    @endguest
                 </div>
             </div>
             <div class="flex justify-center">

@@ -35,7 +35,7 @@
                                 </svg>
                             </span>
                             <input type="text" placeholder="Search product..." class="w-full pl-10 pr-4 py-2 rounded-full border border-gray-200 bg-white/70 focus:bg-white
-                              focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none">
+                                      focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none">
                         </label>
                     </div>
 
@@ -72,8 +72,8 @@
 
             {{-- ====== Sidebar ====== --}}
             <aside id="dashSidebar" class="fixed inset-y-16 left-0 w-72 translate-x-[-110%] lg:translate-x-0 lg:static
-                      bg-white/80 backdrop-blur border-r border-gray-100 shadow lg:shadow-none
-                      z-30 transition-transform duration-300">
+                              bg-white/80 backdrop-blur border-r border-gray-100 shadow lg:shadow-none
+                              z-30 transition-transform duration-300">
                 <div class="p-4">
                     <a href="{{ route('home') }}" class="flex items-center gap-2 mb-6">
                         <div class="h-9 w-9 grid place-items-center rounded-xl bg-primary text-white font-black">A</div>
@@ -84,17 +84,17 @@
                         @php
                             $items = [
                                 ['label' => 'Home', 'icon' => 'M3 12h18', 'href' => route('dashboard')],
-                                ['label' => 'Account', 'icon' => 'M5.121 17.804A8 8 0 1118.879 6.196', 'href' => '#'],
-                                ['label' => 'Course', 'icon' => 'M19 11H5m14 0l-7-7m7 7l-7 7', 'href' => '#'],
-                                ['label' => 'Collection', 'icon' => 'M4 6h16M4 10h16M4 14h16', 'href' => '#'],
-                                ['label' => 'Purchased History', 'icon' => 'M12 8v8m-4-4h8', 'href' => '#'],
-                                ['label' => 'Institution Learning', 'icon' => 'M12 3l8 4-8 4-8-4 8-4z', 'href' => '#'],
+                                ['label' => 'Account', 'icon' => 'M5.121 17.804A8 8 0 1118.879 6.196', 'href' => route('account')],
+                                ['label' => 'Course', 'icon' => 'M19 11H5m14 0l-7-7m7 7l-7 7', 'href' => route('courses')],
+                                ['label' => 'Collection', 'icon' => 'M4 6h16M4 10h16M4 14h16', 'href' => route('collection')],
+                                ['label' => 'Purchased History', 'icon' => 'M12 8v8m-4-4h8', 'href' => route('purchase-history')],
+                                ['label' => 'Institution Learning', 'icon' => 'M12 3l8 4-8 4-8-4 8-4z', 'href' => route('institution')],
                             ];
                           @endphp
 
                         @foreach ($items as $it)
                             <a href="{{ $it['href'] }}" class="flex items-center gap-3 px-4 py-2.5 rounded-xl
-                              hover:bg-primary/5 text-gray-700 hover:text-primary">
+                                              hover:bg-primary/5 text-gray-700 hover:text-primary">
                                 <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                     <path d="{{ $it['icon'] }}" stroke-width="2" stroke-linecap="round"
                                         stroke-linejoin="round" />
@@ -106,7 +106,7 @@
                         <form action="{{ route('logout') }}" method="POST" class="pt-2">
                             @csrf
                             <button type="submit" class="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-left
-                               hover:bg-red-50 text-gray-700 hover:text-red-600">
+                                       hover:bg-red-50 text-gray-700 hover:text-red-600">
                                 <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 11-4 0V7a2 2 0 114 0v1" />
@@ -157,12 +157,12 @@
 
                     {{-- scrollable on mobile, grid on desktop --}}
                     <div class="flex gap-6 overflow-x-auto snap-x snap-mandatory scroll-smooth pb-2
-                        md:grid md:grid-cols-3 xl:grid-cols-4 md:overflow-visible md:snap-none">
+                                md:grid md:grid-cols-3 xl:grid-cols-4 md:overflow-visible md:snap-none">
                         @php
                             $courses = [
-                                ['title' => 'Perencanaan Smart Inverter Sistem Terintegrasi EBT Untuk Ketenagalistrikan', 'price' => 30000, 'badge' => 'Sold', 'level' => 'Specialized', 'chap' => '1 Chapter', 'img' => 'https://via.placeholder.com/480x300.png?text=Course+1'],
-                                ['title' => 'Global Sustainable Finance & Emerging Trends', 'price' => 25000, 'badge' => 'Sold', 'level' => 'Advanced', 'chap' => '2 Chapters', 'img' => 'https://via.placeholder.com/480x300.png?text=Course+2'],
-                                ['title' => 'Matematika Kelas III SD', 'price' => 25000, 'badge' => '3 Sold', 'level' => 'ES', 'chap' => '5 Chapters', 'img' => 'https://via.placeholder.com/480x300.png?text=Course+3'],
+                                ['title' => 'Perencanaan Smart Inverter Sistem Terintegrasi EBT Untuk Ketenagalistrikan', 'price' => 30000, 'badge' => 'Sold', 'level' => 'Specialized', 'chap' => '1 Chapter', 'img' => 'https://images.unsplash.com/photo-1497435334941-8c899ee9e694?w=480&h=300&fit=crop&q=80'],
+                                ['title' => 'Global Sustainable Finance & Emerging Trends', 'price' => 25000, 'badge' => 'Sold', 'level' => 'Advanced', 'chap' => '2 Chapters', 'img' => 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=480&h=300&fit=crop&q=80'],
+                                ['title' => 'Matematika Kelas III SD', 'price' => 25000, 'badge' => '3 Sold', 'level' => 'ES', 'chap' => '5 Chapters', 'img' => 'https://images.unsplash.com/photo-1596495578065-6e0763fa1178?w=480&h=300&fit=crop&q=80'],
                                 ['title' => 'AI in Education', 'price' => 25000, 'badge' => '5 Sold', 'level' => 'Beginner', 'chap' => '3 Chapters', 'img' => 'https://via.placeholder.com/480x300.png?text=Course+4'],
                                 ['title' => 'Startup Pitching', 'price' => 25000, 'badge' => '2 Sold', 'level' => 'Intermediate', 'chap' => '6 Chapters', 'img' => 'https://via.placeholder.com/480x300.png?text=Course+5'],
                             ];
@@ -170,7 +170,7 @@
 
                         @foreach ($courses as $c)
                             <article class="bg-white rounded-2xl shadow hover:shadow-lg transition
-                                    min-w-[280px] snap-start md:min-w-0 overflow-hidden">
+                                                    min-w-[280px] snap-start md:min-w-0 overflow-hidden">
                                 <div class="relative">
                                     <img src="{{ $c['img'] }}" alt="cover" class="w-full h-44 object-cover">
                                     <span
@@ -185,7 +185,8 @@
                                     </span>
                                     <h4 class="mt-2 font-semibold line-clamp-2 min-h-[48px]">{{ $c['title'] }}</h4>
                                     <p class="mt-1 text-gray-500 text-sm">eJourney • Last modified:
-                                        {{ now()->subDays(rand(1, 20))->format('d/m/Y') }}</p>
+                                        {{ now()->subDays(rand(1, 20))->format('d/m/Y') }}
+                                    </p>
 
                                     <div class="mt-3 flex flex-wrap items-center gap-2">
                                         <span

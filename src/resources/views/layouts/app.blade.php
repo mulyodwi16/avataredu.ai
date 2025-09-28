@@ -26,8 +26,12 @@
     @endif
     @yield('body-class')">
 
-  {{-- Navbar: tampil di semua halaman kecuali login/register/dashboard --}}
-  @unless (request()->routeIs('login') || request()->routeIs('register') || request()->routeIs('dashboard'))
+  {{-- Navbar: tampil di semua halaman kecuali login/register dan halaman dashboard/creator --}}
+  @unless (request()->routeIs('login') 
+          || request()->routeIs('register') 
+          || str_starts_with(request()->route()->getName(), 'dashboard')
+          || str_starts_with(request()->route()->getName(), 'creator.')
+          || request()->is('dashboard*'))
     @include('partials.navbar')
   @endunless
 
@@ -35,8 +39,12 @@
     @yield('content')
   </main>
 
-  {{-- Footer: sembunyikan di login/register --}}
-  @unless (request()->routeIs('login') || request()->routeIs('register'))
+  {{-- Footer: sembunyikan di login/register dan halaman dashboard/creator --}}
+  @unless (request()->routeIs('login') 
+          || request()->routeIs('register')
+          || str_starts_with(request()->route()->getName(), 'dashboard')
+          || str_starts_with(request()->route()->getName(), 'creator.')
+          || request()->is('dashboard*'))
     @include('partials.footer')
   @endunless
 

@@ -24,15 +24,15 @@
           @csrf
 
           <input type="email" name="email" value="{{ old('email') }}" placeholder="Email"
-            class="w-full px-4 py-2 border rounded-lg focus:ring-primary focus:border-primary @error('email') border-red-500 @enderror"
+            class="w-full px-4 py-2 rounded-lg border {{ $errors->has('email') ? 'border-red-400 ring-2 ring-red-500/20' : 'border-slate-200' }} focus:ring-2 {{ $errors->has('email') ? 'focus:ring-red-500/20 focus:border-red-400' : 'focus:ring-primary/20 focus:border-primary' }} transition"
             required autofocus>
 
           <input type="password" name="password" placeholder="Password"
-            class="w-full px-4 py-2 border rounded-lg focus:ring-primary focus:border-primary @error('password') border-red-500 @enderror"
+            class="w-full px-4 py-2 rounded-lg border {{ $errors->has('password') ? 'border-red-400 ring-2 ring-red-500/20' : 'border-slate-200' }} focus:ring-2 {{ $errors->has('password') ? 'focus:ring-red-500/20 focus:border-red-400' : 'focus:ring-primary/20 focus:border-primary' }} transition"
             required>
 
           <div class="text-right text-sm">
-            <a href="#" class="text-primary hover:underline">Forgot password?</a>
+            <a href="{{ route('password.request') }}" class="text-primary hover:underline">Forgot password?</a>
           </div>
 
           <button type="submit" class="w-full bg-primary hover:bg-primaryDark text-white font-semibold py-2 rounded-lg">

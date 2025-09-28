@@ -3,7 +3,7 @@
   $title = $course['title'] ?? 'Untitled';
   $category = $course['category'] ?? '-';
   $description = $course['description'] ?? '';
-  $image = $course['image'] ?? 'https://picsum.photos/seed/course/400/250';
+  $image = $course['image'] ?? 'https://images.unsplash.com/photo-1606326608606-aa0b62935f2b?w=400&h=250&fit=crop&q=80';
   $price = $course['price'] ?? 0;
   $duration = $course['duration'] ?? '-';
   $level = $course['level'] ?? '-';
@@ -15,7 +15,8 @@
 <div class="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-lg transition">
   <div class="relative">
     @if($badge)
-      <span class="absolute top-4 left-4 bg-orange-500 text-white text-sm px-3 py-1.5 rounded-lg font-medium">{{ $badge }}</span>
+      <span
+        class="absolute top-4 left-4 bg-orange-500 text-white text-sm px-3 py-1.5 rounded-lg font-medium">{{ $badge }}</span>
     @endif
     <span class="absolute top-4 right-4 bg-blue-600 text-white text-sm px-3 py-1.5 rounded-lg font-medium">
       Rp{{ number_format($price, 0, ',', '.') }}
@@ -36,14 +37,14 @@
       <div class="flex items-center gap-1.5">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
         </svg>
         <span>{{ $duration }}</span>
       </div>
       <div class="flex items-center gap-1.5">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6">
+          </path>
         </svg>
         <span>{{ $level }}</span>
       </div>
@@ -51,11 +52,10 @@
 
     <div class="flex gap-3">
       <a href="#"
-         class="flex-1 text-center py-2 border border-gray-300 rounded-lg text-gray-600 font-medium hover:bg-gray-50">
+        class="flex-1 text-center py-2 border border-gray-300 rounded-lg text-gray-600 font-medium hover:bg-gray-50">
         View Details
       </a>
-      <a href="#"
-         class="flex-1 text-center py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700">
+      <a href="#" class="flex-1 text-center py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700">
         Buy Now
       </a>
     </div>
