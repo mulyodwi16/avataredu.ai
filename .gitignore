@@ -1,6 +1,7 @@
 # --- Laravel ---
-/vendor
-/node_modules
+/vendor/
+/node_modules/
+/public/hot
 /public/storage
 /storage/*.key
 /storage/framework/cache/*
@@ -8,8 +9,8 @@
 /storage/framework/views/*
 /bootstrap/cache/*
 .env
-src/.env
 .env.*.local
+src/.env
 
 # --- Logs ---
 *.log
@@ -19,7 +20,6 @@ yarn-error.log*
 pnpm-debug.log*
 
 # --- Docker ---
-docker-compose.yml
 docker-compose.override.yml
 .env.docker
 *.pid
@@ -27,12 +27,11 @@ docker-compose.override.yml
 *.sql
 
 # --- Certbot (private keys & challenges) ---
-certbot/letsencrypt
+certbot/letsencrypt/
 certbot/www/.well-known/acme-challenge/*
 
 # --- IDE / OS ---
-.vscode
-.idea
+.vscode/
+.idea/
 .DS_Store
 Thumbs.db
-
