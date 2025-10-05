@@ -8,14 +8,11 @@ return new class extends Migration {
     public function up()
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->enum('role', ['user', 'creator', 'admin'])->default('user')->after('email');
+            $table->enum('role', ['user', 'admin'])->default('user')->after('email');
             $table->string('bio')->nullable()->after('avatar');
             $table->string('expertise')->nullable()->after('bio');
             $table->string('website')->nullable()->after('expertise');
             $table->json('social_links')->nullable()->after('website');
-            $table->decimal('creator_rating', 3, 2)->nullable()->after('social_links');
-            $table->integer('courses_count')->default(0)->after('creator_rating');
-            $table->integer('students_count')->default(0)->after('courses_count');
         });
     }
 
@@ -27,10 +24,7 @@ return new class extends Migration {
                 'bio',
                 'expertise',
                 'website',
-                'social_links',
-                'creator_rating',
-                'courses_count',
-                'students_count'
+                'social_links'
             ]);
         });
     }

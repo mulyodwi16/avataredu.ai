@@ -9,13 +9,27 @@
 
       {{-- Desktop nav --}}
       <nav class="hidden lg:flex items-center lg:gap-8">
-        <a href="#" class="text-gray-600 hover:text-blue-600">Modules</a>
-        <a href="#" class="text-gray-600 hover:text-blue-600">Categories</a>
-        <a href="#" class="text-gray-600 hover:text-blue-600">About</a>
-        <a href="#" class="text-gray-600 hover:text-blue-600">Help</a>
+        <a href="{{ route('dashboard') }}"
+          class="text-gray-600 hover:text-blue-600 {{ request()->routeIs('dashboard*') ? 'text-blue-600 font-semibold' : '' }}">
+          Courses
+        </a>
 
         @auth
-          <a href="{{ route('dashboard') }}" class="text-gray-600 hover:text-blue-600">Dashboard</a>
+          <a href="{{ route('dashboard') }}"
+            class="text-gray-600 hover:text-blue-600 {{ request()->routeIs('dashboard') ? 'text-blue-600 font-semibold' : '' }}">
+            My Collection
+          </a>
+          <a href="{{ route('dashboard') }}" onclick="navigateToPurchaseHistory(event)"
+            class="text-gray-600 hover:text-blue-600 {{ request()->routeIs('dashboard') ? 'text-blue-600 font-semibold' : '' }}">
+            Purchase History
+          </a>
+          <a href="{{ route('dashboard') }}"
+            class="text-gray-600 hover:text-blue-600 {{ request()->routeIs('dashboard') ? 'text-blue-600 font-semibold' : '' }}">
+            Dashboard
+          </a>
+        @else
+          <a href="#" class="text-gray-600 hover:text-blue-600">About</a>
+          <a href="#" class="text-gray-600 hover:text-blue-600">Help</a>
         @endauth
       </nav>
 
@@ -54,14 +68,24 @@
   {{-- Mobile menu --}}
   <div id="mobileMenu" class="hidden lg:hidden border-t border-gray-100">
     <div class="space-y-1 px-4 py-3">
-      <a href="#teachers" class="block rounded-lg px-3 py-2 text-gray-700 hover:bg-gray-100">Teachers</a>
-      <a href="#courses" class="block rounded-lg px-3 py-2 text-gray-700 hover:bg-gray-100">Courses</a>
-      <a href="#scholarship" class="block rounded-lg px-3 py-2 text-gray-700 hover:bg-gray-100">Scholarship</a>
-      <a href="#pricing" class="block rounded-lg px-3 py-2 text-gray-700 hover:bg-gray-100">Pricing</a>
+      <a href="{{ route('dashboard') }}"
+        class="block rounded-lg px-3 py-2 text-gray-700 hover:bg-gray-100 {{ request()->routeIs('dashboard*') ? 'bg-primary/10 text-primary' : '' }}">
+        Courses
+      </a>
 
       @auth
         <a href="{{ route('dashboard') }}"
-          class="block rounded-lg px-3 py-2 text-gray-700 hover:bg-gray-100">Dashboard</a>
+          class="block rounded-lg px-3 py-2 text-gray-700 hover:bg-gray-100 {{ request()->routeIs('dashboard') ? 'bg-primary/10 text-primary' : '' }}">
+          My Collection
+        </a>
+        <a href="{{ route('dashboard') }}" onclick="navigateToPurchaseHistory(event)"
+          class="block rounded-lg px-3 py-2 text-gray-700 hover:bg-gray-100 {{ request()->routeIs('dashboard') ? 'bg-primary/10 text-primary' : '' }}">
+          Purchase History
+        </a>
+        <a href="{{ route('dashboard') }}"
+          class="block rounded-lg px-3 py-2 text-gray-700 hover:bg-gray-100 {{ request()->routeIs('dashboard') ? 'bg-primary/10 text-primary' : '' }}">
+          Dashboard
+        </a>
         <form action="{{ route('logout') }}" method="POST" class="pt-2">
           @csrf
           <button type="submit"
@@ -70,6 +94,9 @@
           </button>
         </form>
       @else
+        <a href="#" class="block rounded-lg px-3 py-2 text-gray-700 hover:bg-gray-100">About</a>
+        <a href="#" class="block rounded-lg px-3 py-2 text-gray-700 hover:bg-gray-100">Help</a>
+
         <div class="pt-2 flex flex-col gap-2">
           <a href="{{ route('login') }}"
             class="w-full text-center rounded-xl px-4 py-2 border border-gray-300 text-gray-700 hover:bg-gray-50">
@@ -84,3 +111,14 @@
     </div>
   </div>
 </header>
+
+<script>
+  function navigateToPurchaseHistory(event) {
+    // If we're already on the dashboard page, prevent default and use JavaScript navigation
+    if (window.location.pathname.includes('/dashboard') && typeof loadPage === 'function') {
+      event.preventDefault();
+      loadPage('purchase-history');
+    }
+    // Otherwise, let the normal link behavior happen (will redirect to dashboard)
+  }
+</script>

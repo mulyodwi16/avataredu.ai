@@ -1,5 +1,5 @@
 <footer class="bg-primary text-white py-10">
-  <div class="container mx-auto grid md:grid-cols-3 gap-6 px-6">
+  <div class="mx-auto max-w-7xl px-4 grid md:grid-cols-3 gap-6">
     <div>
       <h3 class="font-bold text-lg mb-2">Avataredu.ai</h3>
       <p>Experience premium learning together</p>

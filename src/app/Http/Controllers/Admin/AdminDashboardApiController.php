@@ -1,0 +1,829 @@
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Services\AdminService;
+use App\Services\CourseService;
+use App\Models\Course;
+use App\Models\User;
+use App\Models\Category;
+use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Hash;
+
+class AdminDashboardApiController extends Controller
+{
+    protected AdminService $adminService;
+    protected CourseService $courseService;
+
+    public function __construct(AdminService $adminService, CourseService $courseService)
+    {
+        $this->adminService = $adminService;
+        $this->courseService = $courseService;
+    }
+
+    /**
+     * Display admin courses index
+     */
+    public function index()
+    {
+        return redirect()->route('admin.dashboard');
+    }
+
+    /**
+     * Show create course form
+     */
+    public function create()
+    {
+        return redirect()->route('admin.dashboard');
+    }
+
+    /**
+     * Show edit course form
+     */
+    public function edit(Course $course)
+    {
+        return redirect()->route('admin.dashboard');
+    }
+
+    /**
+     * Show create course page as standalone page
+     */
+    public function showCreateCourse()
+    {
+        try {
+            $categories = Category::all();
+            return view('admin.pages.create-course', compact('categories'));
+        } catch (\Exception $e) {
+            \Log::error('Create course page error: ' . $e->getMessage());
+            return redirect()->route('admin.dashboard')->with('error', 'Failed to load create course page');
+        }
+    }
+
+    /**
+     * Show edit course page as standalone page
+     */
+    public function showEditCourse(Course $course)
+    {
+        try {
+            // Check if user owns this course or is super admin
+            if (!auth()->user()->isSuperAdmin() && $course->creator_id !== auth()->id()) {
+                return redirect()->route('admin.dashboard')->with('error', 'Access denied');
+            }
+
+            $categories = Category::all();
+            return view('admin.pages.edit-course', compact('course', 'categories'));
+        } catch (\Exception $e) {
+            \Log::error('Edit course page error: ' . $e->getMessage());
+            return redirect()->route('admin.dashboard')->with('error', 'Failed to load edit course page');
+        }
+    }
+
+    /**
+     * Get admin page content for single page navigation
+     */
+    public function getContent(Request $request, string $page): JsonResponse
+    {
+        try {
+            \Log::info('AdminDashboard API called with page: ' . $page);
+
+            // Handle nested pages like courses/create, courses/{id}/edit
+            $parts = explode('/', $page);
+            $mainPage = $parts[0];
+
+            \Log::info('Main page: ' . $mainPage . ', Parts: ' . json_encode($parts));
+
+            switch ($mainPage) {
+                case 'dashboard':
+                    return $this->getDashboardContent();
+
+                case 'courses':
+                    if (count($parts) === 1) {
+                        return $this->getCoursesContent($request);
+                    } elseif (count($parts) === 2 && $parts[1] === 'create') {
+                        \Log::info('Calling getCourseCreateContent');
+                        return $this->getCourseCreateContent();
+                    } elseif (count($parts) === 3 && $parts[2] === 'edit') {
+                        return $this->getCourseEditContent($parts[1]);
+                    } elseif (count($parts) === 3 && $parts[2] === 'content') {
+                        return $this->getCourseContentManagement($parts[1]);
+                    }
+                    break;
+
+                case 'users':
+                    return $this->getUsersContent($request);
+            }
+
+            \Log::warning('Page not found: ' . $page);
+            return response()->json(['error' => 'Page not found'], 404);
+        } catch (\Exception $e) {
+            \Log::error('Admin page loading error: ' . $e->getMessage());
+            return response()->json(['error' => 'Error loading content: ' . $e->getMessage()], 500);
+        }
+    }
+
+    private function getDashboardContent()
+    {
+        try {
+            $adminId = auth()->id();
+
+            // Get accurate stats first
+            $adminId = auth()->id();
+            $isAdmin = auth()->user()->isAdmin();
+            $isSuperAdmin = auth()->user()->isSuperAdmin();
+
+            // Stats should count ALL courses, not just recent ones
+            if ($isSuperAdmin) {
+                // Super admin sees all courses
+                $stats = [
+                    'total_courses' => Course::count(),
+                    'published_courses' => Course::where('is_published', 1)->count(),
+                    'draft_courses' => Course::where('is_published', 0)->count(),
+                ];
+                $totalEnrollments = \App\Models\Enrollment::count();
+            } else {
+                // Regular admin sees only their courses  
+                $stats = [
+                    'total_courses' => Course::where('creator_id', $adminId)->count(),
+                    'published_courses' => Course::where('creator_id', $adminId)->where('is_published', 1)->count(),
+                    'draft_courses' => Course::where('creator_id', $adminId)->where('is_published', 0)->count(),
+                ];
+                $totalEnrollments = \App\Models\Enrollment::whereIn(
+                    'course_id',
+                    Course::where('creator_id', $adminId)->pluck('id')
+                )->count();
+            }
+
+            // Recent courses for display (limit 3 for performance)
+            $userCourses = Course::where('creator_id', $adminId)
+                ->select('id', 'title', 'description', 'is_published', 'updated_at')
+                ->latest()
+                ->take(3)
+                ->get();
+
+            // Add enrollment stats
+            $stats['total_enrollments'] = $totalEnrollments;
+            $stats['total_students'] = \App\Models\User::where('role', 'user')->count();
+
+            // No featured courses for faster loading
+            $featuredCourses = collect([]);
+            $allCoursesCount = $stats['total_courses'];
+            $recentCourses = $userCourses;
+
+            $html = view('admin.partials.dashboard-content', compact(
+                'stats',
+                'recentCourses',
+                'featuredCourses',
+                'allCoursesCount'
+            ))->render();
+
+            return response()->json(['html' => $html]);
+        } catch (\Exception $e) {
+            \Log::error('Admin dashboard error: ' . $e->getMessage());
+            return response()->json(['error' => 'Dashboard loading failed'], 500);
+        }
+    }
+
+    private function getCoursesContent(Request $request)
+    {
+        try {
+            $search = $request->get('search');
+            $category = $request->get('category');
+            $status = $request->get('status');
+            $sort = $request->get('sort', 'latest');
+
+            // Build fresh query with explicit field selection
+            $adminId = auth()->id();
+            $isSuperAdmin = auth()->user()->isSuperAdmin();
+
+            // Start with base query
+            $query = Course::select([
+                'id',
+                'title',
+                'description',
+                'thumbnail',
+                'price',
+                'is_published',
+                'category_id',
+                'creator_id',
+                'enrolled_count',
+                'duration_hours',
+                'created_at',
+                'updated_at'
+            ])->with('creator:id,name');
+
+            // Admin scope - use explicit where clause
+            if (!$isSuperAdmin) {
+                $query->where('creator_id', '=', $adminId);
+            }
+
+            // Apply filters
+            if ($search) {
+                $query->where('title', 'like', '%' . $search . '%');
+            }
+
+            if ($category) {
+                $query->where('category_id', $category);
+            }
+
+            if ($status) {
+                if ($status === 'published') {
+                    $query->where('is_published', true);
+                } elseif ($status === 'draft') {
+                    $query->where('is_published', false);
+                }
+            }
+
+            // Apply sorting
+            switch ($sort) {
+                case 'title':
+                    $query->orderBy('title');
+                    break;
+                case 'oldest':
+                    $query->oldest();
+                    break;
+                default:
+                    $query->latest();
+                    break;
+            }
+
+            $courses = $query->with('category')->paginate(12);
+            $categories = Category::all();
+
+            $html = view('admin.partials.courses-content', compact(
+                'courses',
+                'categories',
+                'search',
+                'category',
+                'status',
+                'sort'
+            ))->render();
+
+            return response()->json(['html' => $html]);
+        } catch (\Exception $e) {
+            \Log::error('Courses loading error: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to load courses'], 500);
+        }
+    }
+
+    private function getUsersContent(Request $request)
+    {
+        try {
+            // Only super admin can access user management
+            if (!auth()->user()->isSuperAdmin()) {
+                return response()->json(['error' => 'Access denied'], 403);
+            }
+
+            $search = $request->get('search');
+            $role = $request->get('role');
+            $sort = $request->get('sort', 'latest');
+
+            // Build query with necessary fields
+            $query = User::select('id', 'name', 'email', 'role', 'created_at', 'updated_at');
+
+            // Apply filters
+            if ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', '%' . $search . '%')
+                        ->orWhere('email', 'like', '%' . $search . '%');
+                });
+            }
+
+            if ($role && $role !== 'all') {
+                $query->where('role', $role);
+            }
+
+            // Apply sorting
+            switch ($sort) {
+                case 'name':
+                    $query->orderBy('name');
+                    break;
+                case 'email':
+                    $query->orderBy('email');
+                    break;
+                case 'oldest':
+                    $query->oldest();
+                    break;
+                default:
+                    $query->latest();
+                    break;
+            }
+
+            $users = $query->paginate(20);
+
+            $html = view('admin.partials.users-content', compact(
+                'users',
+                'search',
+                'role',
+                'sort'
+            ))->render();
+
+            return response()->json(['html' => $html]);
+
+        } catch (\Exception $e) {
+            \Log::error('getUsersContent error: ' . $e->getMessage());
+            return response()->json([
+                'error' => 'Failed to load users: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    private function getCourseCreateContent()
+    {
+        try {
+            \Log::info('getCourseCreateContent called');
+
+            $categories = Category::all();
+            \Log::info('Categories loaded: ' . $categories->count());
+
+            $html = view('admin.partials.course-create-content', compact('categories'))->render();
+            \Log::info('View rendered successfully');
+
+            return response()->json(['html' => $html]);
+        } catch (\Exception $e) {
+            \Log::error('Course create page error: ' . $e->getMessage());
+            \Log::error('Stack trace: ' . $e->getTraceAsString());
+            return response()->json(['error' => 'Failed to load create course page: ' . $e->getMessage()], 500);
+        }
+    }
+
+    private function getCourseEditContent($courseId)
+    {
+        try {
+            $course = Course::with('category')->findOrFail($courseId);
+
+            // Check if user owns this course or is super admin
+            if (!auth()->user()->isSuperAdmin() && $course->creator_id !== auth()->id()) {
+                return response()->json(['error' => 'Access denied'], 403);
+            }
+
+            $categories = Category::all();
+
+            $html = view('admin.partials.course-edit-content', compact('course', 'categories'))->render();
+            return response()->json(['html' => $html]);
+        } catch (\Exception $e) {
+            \Log::error('Course edit page error: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to load edit course page'], 500);
+        }
+    }
+
+    /**
+     * Get course content management page
+     */
+    private function getCourseContentManagement(string $courseId)
+    {
+        try {
+            $course = Course::with([
+                'chapters.lessons' => function ($query) {
+                    $query->orderBy('order');
+                }
+            ])->findOrFail($courseId);
+
+            $chapters = $course->chapters()->with('lessons')->orderBy('order')->get();
+
+            $html = view('admin.partials.course-content-management', compact('course', 'chapters'))->render();
+            return response()->json(['html' => $html]);
+        } catch (\Exception $e) {
+            \Log::error('Course content management page error: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to load course content management page'], 500);
+        }
+    }
+
+    /**
+     * Delete course (admin and superadmin)
+     */
+    public function deleteCourse(Course $course): JsonResponse
+    {
+        try {
+
+            // Check permission - creator or super admin can delete
+            if (!auth()->user()->isSuperAdmin() && $course->creator_id !== auth()->id()) {
+                return response()->json(['error' => 'Access denied. You can only delete your own courses.'], 403);
+            }
+
+            // Check if course has enrollments
+            $enrollmentCount = $course->enrollments()->count();
+            if ($enrollmentCount > 0) {
+                return response()->json([
+                    'error' => "Cannot delete course '{$course->title}'. It has {$enrollmentCount} active enrollment(s). Please remove all enrollments first or contact support for force deletion."
+                ], 400);
+            }
+
+            // Delete associated files
+            if ($course->thumbnail) {
+                \Storage::disk('public')->delete($course->thumbnail);
+            }
+            if ($course->main_video_url) {
+                \Storage::disk('public')->delete($course->main_video_url);
+            }
+
+            $courseName = $course->title;
+            $course->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => "Course '{$courseName}' has been successfully deleted."
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Course deletion error: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to delete course: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Store new course
+     */
+    public function storeCourse(Request $request): JsonResponse
+    {
+        try {
+            \Log::info('StoreCourse called', [
+                'user_id' => auth()->id(),
+                'request_data' => $request->all(),
+                'files' => $request->allFiles()
+            ]);
+
+            $request->validate([
+                'title' => 'required|string|max:255',
+                'description' => 'required|string',
+                'category_id' => 'required|exists:categories,id',
+                'price' => 'required|numeric|min:0',
+                'level' => 'required|in:beginner,intermediate,advanced',
+                'duration_hours' => 'required|integer|min:1',
+                'thumbnail' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+                'video' => 'nullable|file|mimes:mp4,mov,avi,wmv,flv|max:102400', // max 100MB
+                'video_title' => 'nullable|string|max:255',
+                'is_published' => 'boolean'
+            ]);
+
+            $course = new Course();
+            $course->title = $request->title;
+            $course->slug = \Str::slug($request->title) . '-' . time(); // Generate unique slug
+            $course->description = $request->description;
+            $course->category_id = $request->category_id;
+            $course->price = $request->price;
+            $course->level = $request->level;
+            $course->duration_hours = $request->duration_hours;
+            $course->is_published = $request->boolean('is_published', false);
+            $course->creator_id = auth()->id();
+
+            // Handle thumbnail upload
+            if ($request->hasFile('thumbnail')) {
+                $path = $request->file('thumbnail')->store('course-thumbnails', 'public');
+                $course->thumbnail = $path;
+            }
+
+            // Handle video upload  
+            if ($request->hasFile('video')) {
+                // Create directory if not exists
+                $uploadDir = 'courses/videos';
+                if (!\Storage::disk('public')->exists($uploadDir)) {
+                    \Storage::disk('public')->makeDirectory($uploadDir);
+                }
+
+                // Generate unique filename to prevent conflicts
+                $file = $request->file('video');
+                $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+                $extension = $file->getClientOriginalExtension();
+                $filename = $originalName . '_' . time() . '_' . uniqid() . '.' . $extension;
+
+                // Store video in organized folder structure
+                $relativePath = $uploadDir . '/' . $filename;
+                $file->storeAs('', $relativePath, 'public');
+
+                // Save video info to course
+                $course->main_video_url = $relativePath;
+                $course->video_title = $request->input('video_title') ?: $course->title;
+            }
+
+            $course->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Course created successfully',
+                'course' => $course
+            ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            \Log::error('Course creation error: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to create course'], 500);
+        }
+    }
+
+    /**
+     * Update course
+     */
+    public function updateCourse(Request $request, Course $course): JsonResponse
+    {
+        try {
+            $request->validate([
+                'title' => 'required|string|max:255',
+                'description' => 'required|string',
+                'category_id' => 'required|exists:categories,id',
+                'price' => 'required|numeric|min:0',
+                'level' => 'required|in:beginner,intermediate,advanced',
+                'duration_hours' => 'required|integer|min:1',
+                'thumbnail' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+                'is_published' => 'boolean'
+            ]);
+
+            $course->title = $request->title;
+            $course->description = $request->description;
+            $course->category_id = $request->category_id;
+            $course->price = $request->price;
+            $course->level = $request->level;
+            $course->duration_hours = $request->duration_hours;
+            $course->is_published = $request->boolean('is_published', $course->is_published);
+
+            // Handle thumbnail upload
+            if ($request->hasFile('thumbnail')) {
+                // Delete old thumbnail if exists
+                if ($course->thumbnail) {
+                    \Storage::disk('public')->delete($course->thumbnail);
+                }
+
+                $path = $request->file('thumbnail')->store('course-thumbnails', 'public');
+                $course->thumbnail = $path;
+            }
+
+            $course->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Course updated successfully',
+                'course' => $course
+            ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            \Log::error('Course update error: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to update course'], 500);
+        }
+    }
+
+    /**
+     * Upload simple video for course
+     */
+    public function uploadVideo(Request $request, Course $course): JsonResponse
+    {
+        \Log::info('Upload video method called', [
+            'course_id' => $course->id,
+            'request_data' => $request->all(),
+            'files' => $request->allFiles()
+        ]);
+
+        try {
+            $request->validate([
+                'video' => 'required|file|mimes:mp4,mov,avi,wmv,flv|max:102400', // max 100MB
+                'video_title' => 'nullable|string|max:255'
+            ]);
+
+            // Delete old video if exists
+            if ($course->main_video_url) {
+                \Storage::disk('public')->delete($course->main_video_url);
+            }
+
+            // Create directory if not exists
+            $uploadDir = 'courses/videos';
+            if (!\Storage::disk('public')->exists($uploadDir)) {
+                \Storage::disk('public')->makeDirectory($uploadDir);
+            }
+
+            // Generate unique filename to prevent conflicts
+            $file = $request->file('video');
+            $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+            $extension = $file->getClientOriginalExtension();
+            $filename = $originalName . '_' . time() . '_' . uniqid() . '.' . $extension;
+
+            // Store video in organized folder structure
+            $relativePath = $uploadDir . '/' . $filename;
+            $file->storeAs('', $relativePath, 'public');
+
+            // Save only the relative path in database (not full URL)
+            $course->main_video_url = $relativePath;
+            $course->video_title = $request->input('video_title') ?: $course->title;
+            $course->save();
+
+            \Log::info('Video uploaded successfully', [
+                'course_id' => $course->id,
+                'filename' => $filename,
+                'path' => $relativePath,
+                'size' => $file->getSize()
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Video uploaded successfully',
+                'video_url' => asset('storage/' . $course->main_video_url),
+                'video_path' => $course->main_video_url,
+                'video_title' => $course->video_title
+            ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            \Log::warning('Video upload validation failed', ['errors' => $e->errors()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            \Log::error('Video upload error: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+                'course_id' => $course->id
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to upload video',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Delete simple video for course
+     */
+    public function deleteVideo(Course $course): JsonResponse
+    {
+        try {
+            if ($course->main_video_url) {
+                // Delete the video file using the stored path
+                \Storage::disk('public')->delete($course->main_video_url);
+
+                \Log::info('Video deleted', [
+                    'course_id' => $course->id,
+                    'deleted_path' => $course->main_video_url
+                ]);
+
+                $course->main_video_url = null;
+                $course->video_title = null;
+                $course->save();
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Video removed successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Video delete error: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to remove video'], 500);
+        }
+    }
+
+    /**
+     * Delete user (Super Admin only)
+     */
+
+
+    /**
+     * Make user admin (Super Admin only)
+     */
+    public function makeUserAdmin(Request $request, string $userId): JsonResponse
+    {
+        try {
+            // Only super admin can promote users
+            if (!auth()->user()->isSuperAdmin()) {
+                return response()->json(['error' => 'Access denied. Only super admin can promote users.'], 403);
+            }
+
+            $user = \App\Models\User::findOrFail($userId);
+
+            if ($user->role === 'admin') {
+                return response()->json(['error' => 'User is already an admin.'], 400);
+            }
+
+            if ($user->role === 'super_admin') {
+                return response()->json(['error' => 'Cannot modify super admin role.'], 400);
+            }
+
+            $user->role = 'admin';
+            $user->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => "User '{$user->name}' has been promoted to admin successfully."
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Make admin error: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to promote user: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Create new user (super admin only)
+     */
+    public function createUser(Request $request): JsonResponse
+    {
+        try {
+            if (!auth()->user()->isSuperAdmin()) {
+                return response()->json(['error' => 'Access denied'], 403);
+            }
+
+            $request->validate([
+                'name' => 'required|string|max:255',
+                'email' => 'required|string|email|max:255|unique:users',
+                'password' => 'required|string|min:8|confirmed',
+                'role' => 'required|in:user,admin,super_admin'
+            ]);
+
+            $user = User::create([
+                'name' => $request->name,
+                'email' => $request->email,
+                'password' => Hash::make($request->password),
+                'role' => $request->role,
+                'email_verified_at' => now()
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => "User '{$user->name}' created successfully."
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Create user error: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to create user: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Update user (super admin only)
+     */
+    public function updateUser(Request $request, User $user): JsonResponse
+    {
+        try {
+            if (!auth()->user()->isSuperAdmin()) {
+                return response()->json(['error' => 'Access denied'], 403);
+            }
+
+            $request->validate([
+                'name' => 'required|string|max:255',
+                'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
+                'role' => 'required|in:user,admin,super_admin'
+            ]);
+
+            $user->update([
+                'name' => $request->name,
+                'email' => $request->email,
+                'role' => $request->role
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => "User '{$user->name}' updated successfully."
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Update user error: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to update user: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Delete user (super admin only)
+     */
+    public function deleteUser(User $user): JsonResponse
+    {
+        try {
+            if (!auth()->user()->isSuperAdmin()) {
+                return response()->json(['error' => 'Access denied'], 403);
+            }
+
+            // Prevent deleting self
+            if ($user->id === auth()->id()) {
+                return response()->json(['error' => 'Cannot delete your own account'], 400);
+            }
+
+            // Check if user has enrollments
+            $enrollmentCount = $user->enrollments()->count();
+            if ($enrollmentCount > 0) {
+                return response()->json([
+                    'error' => "Cannot delete user '{$user->name}'. User has {$enrollmentCount} active enrollment(s)."
+                ], 400);
+            }
+
+            $userName = $user->name;
+            $user->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => "User '{$userName}' deleted successfully."
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Delete user error: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to delete user: ' . $e->getMessage()], 500);
+        }
+    }
+
+}

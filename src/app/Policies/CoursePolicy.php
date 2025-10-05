@@ -12,7 +12,7 @@ class CoursePolicy
      */
     public function create(User $user): bool
     {
-        return $user->isCreator() || $user->isAdmin();
+        return $user->isAdmin();
     }
 
     /**

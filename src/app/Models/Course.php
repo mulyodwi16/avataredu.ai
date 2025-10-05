@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Category;
 use App\Models\Department;
+use App\Models\Enrollment;
 use App\Models\Institution;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -22,22 +23,26 @@ class Course extends Model
         'slug',
         'description',
         'thumbnail',
+        'video_path',
+        'main_video_url',
+        'video_title',
         'price',
-        'status',
+        'is_published',
         'level',
-        'duration',
-        'metadata',
-        'learning_outcomes',
-        'requirements',
-        'students_count',
-        'ratings_count',
+        'duration_hours',
+        'curriculum',
+        'total_chapters',
+        'total_lessons',
+        'enrolled_count',
         'average_rating',
         'published_at'
     ];
 
     protected $casts = [
         'price' => 'decimal:2',
-        'metadata' => 'json'
+        'curriculum' => 'json',
+        'published_at' => 'datetime',
+        'average_rating' => 'decimal:2'
     ];
 
     public function category(): BelongsTo
@@ -46,11 +51,19 @@ class Course extends Model
     }
 
     /**
-     * Get the creator of this course
+     * Get the admin who created this course
      */
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'creator_id');
+    }
+
+    /**
+     * Alias for creator - get the admin who created this course
+     */
+    public function admin(): BelongsTo
+    {
+        return $this->creator();
     }
 
     /**
@@ -59,8 +72,16 @@ class Course extends Model
     public function students(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'enrollments')
-            ->withPivot(['progress', 'completed_at', 'last_accessed_at'])
+            ->withPivot(['progress_percentage', 'completed_at', 'last_accessed_at'])
             ->withTimestamps();
+    }
+
+    /**
+     * Get the enrollments for this course
+     */
+    public function enrollments(): HasMany
+    {
+        return $this->hasMany(Enrollment::class);
     }
 
     /**
@@ -83,5 +104,94 @@ class Course extends Model
         return $this->belongsToMany(Department::class, 'institution_courses')
             ->withPivot(['is_mandatory', 'available_from', 'available_until'])
             ->withTimestamps();
+    }
+
+    // Scope methods for better query handling
+    public function scopePublished($query)
+    {
+        return $query->where('is_published', true);
+    }
+
+    public function scopeByLevel($query, $level)
+    {
+        return $query->where('level', $level);
+    }
+
+    public function scopeByCategory($query, $categoryId)
+    {
+        return $query->where('category_id', $categoryId);
+    }
+
+    public function scopeWithAuthor($query)
+    {
+        return $query->with(['creator:id,name,avatar,bio']);
+    }
+
+    // Helper methods
+    public function isPublished(): bool
+    {
+        return $this->is_published === true;
+    }
+
+    public function getFormattedPriceAttribute(): string
+    {
+        return 'Rp ' . number_format((float) $this->price, 0, ',', '.');
+    }
+
+    public function getThumbnailUrlAttribute(): string
+    {
+        if ($this->thumbnail) {
+            return asset('storage/' . $this->thumbnail);
+        }
+        return asset('images/course-placeholder.jpg');
+    }
+
+    public function getVideoUrlAttribute(): ?string
+    {
+        if ($this->video_path) {
+            return asset('storage/' . $this->video_path);
+        }
+        return null;
+    }
+
+    public function getDurationTextAttribute(): string
+    {
+        if (empty($this->duration_hours) || $this->duration_hours == 0) {
+            return 'Not specified';
+        }
+
+        return $this->duration_hours . ' hours';
+    }
+
+    /**
+     * Get progress percentage for current enrollment (when loaded with pivot)
+     */
+    public function getProgressAttribute(): float
+    {
+        return $this->pivot ? $this->pivot->progress_percentage : 0;
+    }
+
+    /**
+     * Get total courses count
+     */
+    public static function getTotalCoursesCount(): int
+    {
+        return self::count();
+    }
+
+    /**
+     * Get total published courses count
+     */
+    public static function getPublishedCoursesCount(): int
+    {
+        return self::where('is_published', true)->count();
+    }
+
+    /**
+     * Get total enrollments across all courses
+     */
+    public static function getTotalEnrollmentsCount(): int
+    {
+        return self::sum('enrolled_count');
     }
 }

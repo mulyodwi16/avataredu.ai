@@ -5,7 +5,7 @@
 @section('content')
     {{-- Hero --}}
     <section class="bg-gradient-to-b from-blue-50 to-white py-20">
-        <div class="max-w-7xl mx-auto px-4">
+        <div class="mx-auto max-w-7xl px-4">
             <div class="text-center max-w-3xl mx-auto">
                 <h1 class="text-5xl md:text-6xl font-extrabold mb-4">
                     Learn fast, <span class="text-blue-600">achieve results</span>
@@ -13,7 +13,7 @@
                 <p class="text-gray-600 text-lg mb-8">Short courses to upgrade your skills. Starting at Rp49,000</p>
                 <div class="flex justify-center gap-4">
                     <a href="#browse"
-                        class="bg-blue-600 text-white px-6 py-2.5 rounded-lg font-semibold hover:bg-blue-700">Browse
+                        class="bg-primary text-white px-6 py-2.5 rounded-lg font-semibold hover:bg-primary/90">Browse
                         Modules</a>
                     @guest
                         <a href="{{ route('login') }}"
@@ -37,7 +37,7 @@
 
     {{-- Featured Modules --}}
     <section id="browse" class="py-20">
-        <div class="max-w-7xl mx-auto px-4">
+        <div class="mx-auto max-w-7xl px-4">
             <h2 class="text-3xl font-bold mb-2 text-center">This Week's Featured Modules</h2>
             <p class="text-gray-600 mb-8 text-center">Hand-picked courses to boost your career</p>
 

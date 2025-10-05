@@ -11,23 +11,24 @@
         <nav class="space-y-1">
             @php
                 $items = [
-                    ['label' => 'Home', 'icon' => 'M3 12h18', 'href' => route('dashboard')],
-                    ['label' => 'Account', 'icon' => 'M5.121 17.804A8 8 0 1118.879 6.196', 'href' => route('account')],
-                    ['label' => 'Course', 'icon' => 'M19 11H5m14 0l-7-7m7 7l-7 7', 'href' => route('courses')],
-                    ['label' => 'Collection', 'icon' => 'M4 6h16M4 10h16M4 14h16', 'href' => route('collection')],
-                    ['label' => 'Purchased History', 'icon' => 'M12 8v8m-4-4h8', 'href' => route('purchase-history')],
-                    ['label' => 'Institution Learning', 'icon' => 'M12 3l8 4-8 4-8-4 8-4z', 'href' => route('institution')],
+                    ['label' => 'Home', 'icon' => 'M3 12h18', 'id' => 'dashboard'],
+                    ['label' => 'Account', 'icon' => 'M5.121 17.804A8 8 0 1118.879 6.196', 'id' => 'account'],
+                    ['label' => 'Course', 'icon' => 'M19 11H5m14 0l-7-7m7 7l-7 7', 'id' => 'courses'],
+                    ['label' => 'Collection', 'icon' => 'M4 6h16M4 10h16M4 14h16', 'id' => 'collection'],
+                    ['label' => 'Purchased History', 'icon' => 'M12 8v8m-4-4h8', 'id' => 'purchase-history'],
+                    ['label' => 'Institution Learning', 'icon' => 'M12 3l8 4-8 4-8-4 8-4z', 'id' => 'institution'],
                 ];
             @endphp
 
             @foreach ($items as $it)
-                <a href="{{ $it['href'] }}" class="flex items-center gap-3 px-4 py-2.5 rounded-xl hover:bg-primary/5 text-gray-700 hover:text-primary
-                              {{ request()->url() === $it['href'] ? 'bg-primary/5 text-primary' : '' }}">
+                <button onclick="loadPage('{{ $it['id'] }}')"
+                    class="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl hover:bg-primary/5 text-gray-700 hover:text-primary text-left
+                        {{ request()->routeIs('dashboard') && $it['id'] == 'dashboard' ? 'bg-primary/5 text-primary' : '' }}" data-page="{{ $it['id'] }}">
                     <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                         <path d="{{ $it['icon'] }}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                     </svg>
                     <span class="font-medium">{{ $it['label'] }}</span>
-                </a>
+                </button>
             @endforeach
 
             <form action="{{ route('logout') }}" method="POST" class="pt-2">

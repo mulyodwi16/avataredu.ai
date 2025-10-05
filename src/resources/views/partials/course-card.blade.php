@@ -18,7 +18,7 @@
       <span
         class="absolute top-4 left-4 bg-orange-500 text-white text-sm px-3 py-1.5 rounded-lg font-medium">{{ $badge }}</span>
     @endif
-    <span class="absolute top-4 right-4 bg-blue-600 text-white text-sm px-3 py-1.5 rounded-lg font-medium">
+    <span class="absolute top-4 right-4 bg-primary text-white text-sm px-3 py-1.5 rounded-lg font-medium">
       Rp{{ number_format($price, 0, ',', '.') }}
     </span>
     <img src="{{ $image }}" alt="{{ $title }}" class="w-full h-48 object-cover">
@@ -55,7 +55,7 @@
         class="flex-1 text-center py-2 border border-gray-300 rounded-lg text-gray-600 font-medium hover:bg-gray-50">
         View Details
       </a>
-      <a href="#" class="flex-1 text-center py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700">
+      <a href="#" class="flex-1 text-center py-2 bg-primary text-white rounded-lg font-medium hover:bg-primary/90">
         Buy Now
       </a>
     </div>

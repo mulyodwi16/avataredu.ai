@@ -10,7 +10,7 @@ return new class extends Migration {
         Schema::create('courses', function (Blueprint $table) {
             $table->id();
             $table->foreignId('category_id')->constrained()->onDelete('cascade');
-            $table->foreignId('instructor_id')->constrained('users')->onDelete('cascade');
+            $table->foreignId('creator_id')->constrained('users')->onDelete('cascade');
             $table->string('title');
             $table->string('slug')->unique();
             $table->text('description');

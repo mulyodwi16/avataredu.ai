@@ -30,10 +30,7 @@ class User extends Authenticatable
         'bio',
         'expertise',
         'website',
-        'social_links',
-        'creator_rating',
-        'courses_count',
-        'students_count'
+        'social_links'
     ];
 
     /**
@@ -61,11 +58,11 @@ class User extends Authenticatable
     }
 
     /**
-     * Check if user is a creator
+     * Check if user is a regular user
      */
-    public function isCreator(): bool
+    public function isUser(): bool
     {
-        return $this->role === 'creator';
+        return $this->role === 'user' || $this->role === null;
     }
 
     /**
@@ -73,11 +70,19 @@ class User extends Authenticatable
      */
     public function isAdmin(): bool
     {
-        return $this->role === 'admin';
+        return $this->role === 'admin' || $this->role === 'super_admin';
     }
 
     /**
-     * Get the courses created by this user
+     * Check if user is a super admin
+     */
+    public function isSuperAdmin(): bool
+    {
+        return $this->role === 'super_admin';
+    }
+
+    /**
+     * Get the courses created by this user (for admins)
      */
     public function createdCourses()
     {
@@ -85,12 +90,20 @@ class User extends Authenticatable
     }
 
     /**
-     * Get the courses purchased by this user
+     * Alias for createdCourses for better naming consistency
      */
-    public function purchasedCourses(): BelongsToMany
+    public function courses()
+    {
+        return $this->createdCourses();
+    }
+
+    /**
+     * Get the courses enrolled by this user
+     */
+    public function enrolledCourses(): BelongsToMany
     {
         return $this->belongsToMany(Course::class, 'enrollments')
-            ->withPivot(['progress', 'completed_at', 'last_accessed_at'])
+            ->withPivot(['progress_percentage', 'completed_at', 'last_accessed_at'])
             ->withTimestamps();
     }
 
@@ -112,5 +125,60 @@ class User extends Authenticatable
         return $this->belongsToMany(Department::class, 'student_institutions')
             ->withPivot(['student_id', 'status', 'metadata'])
             ->withTimestamps();
+    }
+
+    /**
+     * Get user's enrollments
+     */
+    public function enrollments()
+    {
+        return $this->hasMany(Enrollment::class);
+    }
+
+    /**
+     * Get user's transactions
+     */
+    public function transactions()
+    {
+        return $this->hasMany(Transaction::class);
+    }
+
+    /**
+     * Get user's lesson progress through enrollments
+     */
+    public function lessonProgress()
+    {
+        return $this->hasManyThrough(
+            LessonProgress::class,
+            Enrollment::class,
+            'user_id',        // Foreign key on enrollments table
+            'enrollment_id',  // Foreign key on lesson_progress table  
+            'id',            // Local key on users table
+            'id'             // Local key on enrollments table
+        );
+    }
+
+    /**
+     * Check if user can manage courses (admin only)
+     */
+    public function canManageCourses(): bool
+    {
+        return $this->isAdmin();
+    }
+
+    /**
+     * Get total enrollments count across all courses
+     */
+    public static function getTotalEnrollmentsCount(): int
+    {
+        return \App\Models\Enrollment::count();
+    }
+
+    /**
+     * Get total enrolled students count (unique users with at least one enrollment)
+     */
+    public static function getTotalStudentsCount(): int
+    {
+        return \App\Models\Enrollment::distinct('user_id')->count('user_id');
     }
 }
