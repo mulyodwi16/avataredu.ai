@@ -11,6 +11,7 @@ use App\Models\Category;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Validator;
 
 class AdminDashboardApiController extends Controller
 {
@@ -58,6 +59,27 @@ class AdminDashboardApiController extends Controller
         } catch (\Exception $e) {
             \Log::error('Create course page error: ' . $e->getMessage());
             return redirect()->route('admin.dashboard')->with('error', 'Failed to load create course page');
+        }
+    }
+
+    public function showCreateScormCourse()
+    {
+        try {
+            $categories = Category::all();
+            return view('admin.pages.create-scorm-course', compact('categories'));
+        } catch (\Exception $e) {
+            \Log::error('Create SCORM course page error: ' . $e->getMessage());
+            return redirect()->route('admin.dashboard')->with('error', 'Failed to load SCORM course page');
+        }
+    }
+
+    public function showChooseCourseType()
+    {
+        try {
+            return view('admin.pages.choose-course-type');
+        } catch (\Exception $e) {
+            \Log::error('Choose course type page error: ' . $e->getMessage());
+            return redirect()->route('admin.dashboard')->with('error', 'Failed to load course type selection');
         }
     }
 
@@ -678,6 +700,169 @@ class AdminDashboardApiController extends Controller
             \Log::error('Video delete error: ' . $e->getMessage());
             return response()->json(['error' => 'Failed to remove video'], 500);
         }
+    }
+
+    /**
+     * Create course from SCORM package
+     */
+    public function createScormCourse(Request $request): JsonResponse
+    {
+        try {
+            // Basic validation
+            if (!$request->hasFile('scorm_package')) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'SCORM package file is required'
+                ], 400);
+            }
+
+            $file = $request->file('scorm_package');
+
+            // Validate file
+            if (!$file->isValid()) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Invalid file upload'
+                ], 400);
+            }
+
+            // Check file type
+            if ($file->getClientOriginalExtension() !== 'zip') {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'SCORM package must be a ZIP file'
+                ], 400);
+            }
+
+            // Check file size (100MB max)
+            if ($file->getSize() > 100 * 1024 * 1024) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'File size must be less than 100MB'
+                ], 400);
+            }
+
+            // Validate category_id is provided
+            if (!$request->input('category_id')) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Category is required'
+                ], 400);
+            }
+
+            // Validate category exists
+            if (!Category::find($request->input('category_id'))) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Selected category does not exist'
+                ], 400);
+            }
+
+            // Simple SCORM processing
+            $course = $this->processSimpleScorm($file, $request);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'SCORM course created successfully!',
+                'course' => $course,
+                'redirect' => route('admin.editcourse', $course)
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Create SCORM course error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to create SCORM course: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    private function processSimpleScorm($file, $request)
+    {
+        // Extract ZIP file
+        $zip = new \ZipArchive();
+        $extractPath = storage_path('app/scorm/' . uniqid('scorm_'));
+
+        if (!file_exists(dirname($extractPath))) {
+            mkdir(dirname($extractPath), 0755, true);
+        }
+
+        if ($zip->open($file->getPathname()) !== TRUE) {
+            throw new \Exception('Cannot open SCORM ZIP file');
+        }
+
+        $zip->extractTo($extractPath);
+        $zip->close();
+
+        // Look for imsmanifest.xml
+        $manifestPath = $extractPath . '/imsmanifest.xml';
+        if (!file_exists($manifestPath)) {
+            throw new \Exception('imsmanifest.xml not found in SCORM package');
+        }
+
+        // Parse manifest for basic info
+        $dom = new \DOMDocument();
+        $dom->load($manifestPath);
+
+        // Detect SCORM version
+        $scormVersion = null;
+        if ($dom->documentElement->hasAttribute('xmlns')) {
+            $xmlns = $dom->documentElement->getAttribute('xmlns');
+            if (strpos($xmlns, '2004') !== false) {
+                $scormVersion = '2004';
+            } elseif (strpos($xmlns, '1.2') !== false) {
+                $scormVersion = '1.2';
+            }
+        }
+
+        // Get course title
+        $titleNodes = $dom->getElementsByTagName('title');
+        $courseTitle = $titleNodes->length > 0 ? $titleNodes->item(0)->textContent : 'SCORM Course';
+
+        // Get entry point if available
+        $entryPoint = null;
+        $resourceNodes = $dom->getElementsByTagName('resource');
+        if ($resourceNodes->length > 0) {
+            $entryPoint = $resourceNodes->item(0)->getAttribute('href');
+        }
+
+        // Create course record
+        $title = $request->input('title');
+        if (empty($title) || !$title) {
+            $title = $courseTitle;
+        }
+
+        $description = $request->input('description');
+        if (empty($description)) {
+            $description = 'SCORM Course';
+        }
+
+        $course = Course::create([
+            'title' => $title,
+            'slug' => \Illuminate\Support\Str::slug($title) . '-' . uniqid(),
+            'description' => $description,
+            'price' => $request->input('price', 0),
+            'level' => $request->input('level', 'beginner'),
+            'duration_hours' => $request->input('duration_hours', 1),
+            'creator_id' => auth()->id(),
+            'category_id' => $request->input('category_id'),
+            'content_type' => 'scorm',
+            'scorm_package_path' => basename($extractPath), // Just folder name, no prefix
+            'scorm_version' => $scormVersion,
+            'scorm_entry_point' => $entryPoint,
+            'scorm_manifest' => $manifestPath,
+            'is_published' => false
+        ]);
+
+        \Log::info('SCORM course created', [
+            'course_id' => $course->id,
+            'title' => $course->title,
+            'path' => $course->scorm_package_path,
+            'entry_point' => $entryPoint,
+            'version' => $scormVersion
+        ]);
+
+        return $course;
     }
 
     /**

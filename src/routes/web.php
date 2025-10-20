@@ -58,7 +58,8 @@ Route::middleware('auth')->group(function () {
     // Course Learning
     Route::get('/courses/{course}/learn', [App\Http\Controllers\CourseController::class, 'learn'])->name('courses.learn');
 
-
+    // SCORM Package Files (protected by enrollment check)
+    Route::get('/courses/{course}/scorm/{path?}', [App\Http\Controllers\ScormController::class, 'serveScormFile'])->name('courses.scorm-file')->where('path', '.*');
 
     // Purchase/Transaction management
     Route::get('/transactions/{transaction}', [App\Http\Controllers\PurchaseController::class, 'show'])->name('transactions.show');
@@ -107,11 +108,12 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
         Route::get('/courses', [App\Http\Controllers\Admin\AdminDashboardApiController::class, 'index'])->name('courses.index');
 
         // Separate pages for create and edit
-        Route::get('/createcourse', [App\Http\Controllers\Admin\AdminDashboardApiController::class, 'showCreateCourse'])->name('createcourse');
+        Route::get('/createcourse', [App\Http\Controllers\Admin\AdminDashboardApiController::class, 'showChooseCourseType'])->name('createcourse');
+        Route::get('/courses/create', [App\Http\Controllers\Admin\AdminDashboardApiController::class, 'showCreateCourse'])->name('courses.create-regular');
+        Route::get('/courses/create/scorm', [App\Http\Controllers\Admin\AdminDashboardApiController::class, 'showCreateScormCourse'])->name('courses.create-scorm-form');
         Route::get('/editcourse/{course}', [App\Http\Controllers\Admin\AdminDashboardApiController::class, 'showEditCourse'])->name('editcourse');
 
         // Keep original API routes for backward compatibility
-        Route::get('/courses/create', [App\Http\Controllers\Admin\AdminDashboardApiController::class, 'create'])->name('courses.create');
         Route::post('/courses', [App\Http\Controllers\Admin\AdminDashboardApiController::class, 'storeCourse'])->name('courses.store');
         Route::get('/courses/{course}/edit', [App\Http\Controllers\Admin\AdminDashboardApiController::class, 'edit'])->name('courses.edit');
         Route::put('/courses/{course}', [App\Http\Controllers\Admin\AdminDashboardApiController::class, 'updateCourse'])->name('courses.update');
@@ -119,6 +121,9 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
         // Simple Video Upload
         Route::post('/courses/{course}/upload-video', [App\Http\Controllers\Admin\AdminDashboardApiController::class, 'uploadVideo'])->name('courses.upload-video');
         Route::delete('/courses/{course}/delete-video', [App\Http\Controllers\Admin\AdminDashboardApiController::class, 'deleteVideo'])->name('courses.delete-video');
+
+        // SCORM Course Creation
+        Route::post('/courses/create-scorm', [App\Http\Controllers\Admin\AdminDashboardApiController::class, 'createScormCourse'])->name('courses.create-scorm');
 
         // Course Content Management (Chapters & Lessons)
         Route::prefix('courses/{course}')->name('courses.')->group(function () {
@@ -145,5 +150,13 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
         Route::post('/categories', [App\Http\Controllers\Admin\CategoryController::class, 'store'])->name('categories.store');
         Route::put('/categories/{category}', [App\Http\Controllers\Admin\CategoryController::class, 'update'])->name('categories.update');
         Route::delete('/categories/{category}', [App\Http\Controllers\Admin\CategoryController::class, 'destroy'])->name('categories.destroy');
+
+        // SCORM Manager
+        Route::get('/scorm-manager', [App\Http\Controllers\Admin\ScormManagerController::class, 'index'])->name('scorm.index');
+        Route::post('/scorm-manager/upload', [App\Http\Controllers\Admin\ScormManagerController::class, 'upload'])->name('scorm.upload');
+        Route::get('/scorm/{course}/view', [App\Http\Controllers\Admin\ScormManagerController::class, 'viewPackage'])->name('scorm.view-package');
     });
 });
+
+
+

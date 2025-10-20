@@ -20,13 +20,6 @@
                         <p class="text-gray-600">Update course: {{ $course->title }}</p>
                     </div>
                 </div>
-                <div class="flex items-center space-x-3">
-                    <span class="text-sm text-gray-500">{{ auth()->user()->name }}</span>
-                    <form method="POST" action="{{ route('logout') }}" class="inline">
-                        @csrf
-                        <button type="submit" class="text-sm text-red-600 hover:text-red-800">Logout</button>
-                    </form>
-                </div>
             </div>
         </div>
     </header>
@@ -174,88 +167,132 @@
                         </div>
                     </div>
 
-                    {{-- Video Upload Section --}}
-                    <div class="mt-8 space-y-6">
-                        <div class="p-6 bg-green-50 rounded-lg border border-green-200">
-                            <div class="mb-4">
-                                <h3 class="text-lg font-semibold text-gray-900 mb-2">Simple Video Upload</h3>
-                                <p class="text-gray-600 text-sm">Quick and easy - upload a single main video for this course.</p>
-                            </div>
+                    {{-- SCORM Content Section --}}
+                    @if($course->content_type === 'scorm')
+                        <div class="mt-8 space-y-6">
+                            <div class="p-6 bg-blue-50 rounded-lg border border-blue-200">
+                                <div class="mb-4">
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <svg class="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                            <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
+                                        </svg>
+                                        <h3 class="text-lg font-semibold text-gray-900">SCORM Package</h3>
+                                        <span class="ml-auto inline-block px-3 py-1 bg-blue-600 text-white text-xs font-medium rounded-full">SCORM</span>
+                                    </div>
+                                    <p class="text-gray-600 text-sm">This course uses SCORM (Sharable Content Object Reference Model) content package.</p>
+                                </div>
 
-                            <form id="simpleVideoForm" enctype="multipart/form-data" class="space-y-4">
-                                @csrf
+                                <div class="space-y-4">
+                                    {{-- Package Info --}}
+                                    @if($course->scorm_package_path)
+                                        <div class="p-4 bg-white rounded-lg border border-blue-100">
+                                            <p class="text-sm font-medium text-gray-700 mb-2">Package Location:</p>
+                                            <p class="text-xs font-mono text-gray-600 bg-gray-50 p-2 rounded break-all">
+                                                {{ $course->scorm_package_path }}
+                                            </p>
+                                        </div>
+                                    @endif
 
-                                {{-- Current Video Display --}}
-                                @if($course->main_video_url)
-                                    <div class="mb-4 p-4 bg-white rounded-lg border">
-                                        <p class="text-sm font-medium text-gray-700 mb-2">Current Video:</p>
-                                        <video controls class="w-full max-w-md h-48 bg-black rounded">
-                                            <source src="{{ asset('storage/' . $course->main_video_url) }}" type="video/mp4">
-                                            Your browser does not support the video tag.
-                                        </video>
-                                        <p class="text-xs text-gray-500 mt-2">Video uploaded on
-                                            {{ $course->updated_at->format('M d, Y H:i') }}
+                                    @if($course->scorm_version)
+                                        <div class="p-4 bg-white rounded-lg border border-blue-100">
+                                            <p class="text-sm font-medium text-gray-700 mb-2">SCORM Version:</p>
+                                            <p class="text-sm text-gray-600">{{ $course->scorm_version }}</p>
+                                        </div>
+                                    @endif
+
+                                    <div class="p-4 bg-blue-100/50 rounded-lg border border-blue-200">
+                                        <p class="text-sm text-blue-800">
+                                            <strong>Note:</strong> SCORM content is loaded from the package file. 
+                                            To replace the SCORM package, you'll need to delete and re-upload the course.
                                         </p>
                                     </div>
-                                @endif
-
-                                {{-- Video Upload Field --}}
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">
-                                        {{ $course->main_video_url ? 'Replace Video' : 'Upload Video' }} (MP4/MOV)
-                                    </label>
-                                    <div class="flex items-center justify-center w-full">
-                                        <label for="simple_video_file"
-                                            class="flex flex-col items-center justify-center w-full h-32 border-2 border-green-300 border-dashed rounded-lg cursor-pointer bg-green-50 hover:bg-green-100">
-                                            <div class="flex flex-col items-center justify-center pt-5 pb-6">
-                                                <svg class="w-8 h-8 mb-4 text-green-500" fill="none" stroke="currentColor"
-                                                    viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                        d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                                                </svg>
-                                                <p class="mb-2 text-sm text-gray-500">
-                                                    <span class="font-semibold">Click to upload video</span> or drag and drop
-                                                </p>
-                                                <p class="text-xs text-gray-500">MP4, MOV up to 100MB</p>
-                                            </div>
-                                            <input id="simple_video_file" name="video" type="file" class="hidden"
-                                                accept="video/mp4,video/mov" />
-                                        </label>
-                                    </div>
-                                    <div class="text-red-500 text-sm mt-1 hidden" id="simple_video_error"></div>
                                 </div>
-
-                                {{-- Video Title --}}
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Video Title</label>
-                                    <input type="text" name="video_title" id="video_title"
-                                        value="{{ $course->video_title ?? $course->title }}"
-                                        class="w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition"
-                                        placeholder="Enter video title">
-                                </div>
-
-                                {{-- Upload Button --}}
-                                <div class="flex gap-3">
-                                    <button type="button"
-                                        class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
-                                        id="uploadVideoBtn">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                                        </svg>
-                                        {{ $course->main_video_url ? 'Update Video' : 'Upload Video' }}
-                                    </button>
-
-                                    @if($course->main_video_url)
-                                        <button type="button" onclick="deleteSimpleVideo({{ $course->id }})"
-                                            class="px-6 py-3 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors">
-                                            Remove Video
-                                        </button>
-                                    @endif
-                                </div>
-                            </form>
+                            </div>
                         </div>
-                    </div>
+                    @else
+                        {{-- Video Upload Section --}}
+                        <div class="mt-8 space-y-6">
+                            <div class="p-6 bg-green-50 rounded-lg border border-green-200">
+                                <div class="mb-4">
+                                    <h3 class="text-lg font-semibold text-gray-900 mb-2">Simple Video Upload</h3>
+                                    <p class="text-gray-600 text-sm">Quick and easy - upload a single main video for this course.</p>
+                                </div>
+
+                                <form id="simpleVideoForm" enctype="multipart/form-data" class="space-y-4">
+                                    @csrf
+
+                                    {{-- Current Video Display --}}
+                                    @if($course->main_video_url)
+                                        <div class="mb-4 p-4 bg-white rounded-lg border">
+                                            <p class="text-sm font-medium text-gray-700 mb-2">Current Video:</p>
+                                            <video controls class="w-full max-w-md h-48 bg-black rounded">
+                                                <source src="{{ asset('storage/' . $course->main_video_url) }}" type="video/mp4">
+                                                Your browser does not support the video tag.
+                                            </video>
+                                            <p class="text-xs text-gray-500 mt-2">Video uploaded on
+                                                {{ $course->updated_at->format('M d, Y H:i') }}
+                                            </p>
+                                        </div>
+                                    @endif
+
+                                    {{-- Video Upload Field --}}
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                                            {{ $course->main_video_url ? 'Replace Video' : 'Upload Video' }} (MP4/MOV)
+                                        </label>
+                                        <div class="flex items-center justify-center w-full">
+                                            <label for="simple_video_file"
+                                                class="flex flex-col items-center justify-center w-full h-32 border-2 border-green-300 border-dashed rounded-lg cursor-pointer bg-green-50 hover:bg-green-100">
+                                                <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                                                    <svg class="w-8 h-8 mb-4 text-green-500" fill="none" stroke="currentColor"
+                                                        viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                            d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                                    </svg>
+                                                    <p class="mb-2 text-sm text-gray-500">
+                                                        <span class="font-semibold">Click to upload video</span> or drag and drop
+                                                    </p>
+                                                    <p class="text-xs text-gray-500">MP4, MOV up to 100MB</p>
+                                                </div>
+                                                <input id="simple_video_file" name="video" type="file" class="hidden"
+                                                    accept="video/mp4,video/mov" />
+                                            </label>
+                                        </div>
+                                        <div class="text-red-500 text-sm mt-1 hidden" id="simple_video_error"></div>
+                                    </div>
+
+                                    {{-- Video Title --}}
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Video Title</label>
+                                        <input type="text" name="video_title" id="video_title"
+                                            value="{{ $course->video_title ?? $course->title }}"
+                                            class="w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition"
+                                            placeholder="Enter video title">
+                                    </div>
+
+                                    {{-- Upload Button --}}
+                                    <div class="flex gap-3">
+                                        <button type="button"
+                                            class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+                                            id="uploadVideoBtn">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                            </svg>
+                                            {{ $course->main_video_url ? 'Update Video' : 'Upload Video' }}
+                                        </button>
+
+                                        @if($course->main_video_url)
+                                            <button type="button" onclick="deleteSimpleVideo({{ $course->id }})"
+                                                class="px-6 py-3 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors">
+                                                Remove Video
+                                            </button>
+                                        @endif
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    @endif
 
                     {{-- Course Statistics --}}
                     <div class="mt-8 p-6 bg-gray-50 rounded-lg">

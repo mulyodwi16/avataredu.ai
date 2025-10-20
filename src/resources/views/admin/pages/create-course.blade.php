@@ -20,13 +20,6 @@
                             <p class="text-gray-600">Add a new course to your catalog</p>
                         </div>
                     </div>
-                    <div class="flex items-center space-x-3">
-                        <span class="text-sm text-gray-500">{{ auth()->user()->name }}</span>
-                        <form method="POST" action="{{ route('logout') }}" class="inline">
-                            @csrf
-                            <button type="submit" class="text-sm text-red-600 hover:text-red-800">Logout</button>
-                        </form>
-                    </div>
                 </div>
             </div>
         </header>
@@ -47,8 +40,155 @@
                     </div>
                 @endif
 
-                {{-- Course Creation Form --}}
-                <div class="bg-white rounded-xl shadow-sm">
+                {{-- Course Creation Options --}}
+                <div class="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {{-- Regular Course Creation --}}
+                    <div class="bg-white p-6 rounded-xl shadow-sm border-2 border-gray-200 hover:border-primary/30 transition-all cursor-pointer"
+                        onclick="showRegularForm()">
+                        <div class="text-center">
+                            <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                                <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253">
+                                    </path>
+                                </svg>
+                            </div>
+                            <h3 class="text-lg font-semibold text-gray-900 mb-2">Create Regular Course</h3>
+                            <p class="text-gray-600 text-sm">Create course manually with custom content</p>
+                        </div>
+                    </div>
+
+                    {{-- SCORM Course Creation --}}
+                    <div class="bg-white p-6 rounded-xl shadow-sm border-2 border-gray-200 hover:border-green-500/30 transition-all cursor-pointer"
+                        onclick="showScormForm()">
+                        <div class="text-center">
+                            <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                                <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10">
+                                    </path>
+                                </svg>
+                            </div>
+                            <h3 class="text-lg font-semibold text-gray-900 mb-2">Upload SCORM Package</h3>
+                            <p class="text-gray-600 text-sm">Create course automatically from SCORM ZIP file</p>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- SCORM Upload Form --}}
+                <div id="scormForm" class="bg-white rounded-xl shadow-sm hidden">
+                    <div class="p-6 border-b border-gray-200">
+                        <h2 class="text-xl font-semibold text-gray-900">Upload SCORM Package</h2>
+                        <p class="text-gray-600 mt-1">Upload a SCORM-compliant ZIP file to automatically create a course</p>
+                    </div>
+                    <form id="scormUploadForm" class="p-6" enctype="multipart/form-data">
+                        @csrf
+
+                        {{-- SCORM File Upload --}}
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">SCORM Package (ZIP) *</label>
+                            <div class="flex items-center justify-center w-full">
+                                <label for="scorm_package"
+                                    class="flex flex-col items-center justify-center w-full h-32 border-2 border-green-300 border-dashed rounded-lg cursor-pointer bg-green-50 hover:bg-green-100">
+                                    <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                                        <svg class="w-8 h-8 mb-4 text-green-500" fill="none" stroke="currentColor"
+                                            viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10">
+                                            </path>
+                                        </svg>
+                                        <p class="mb-2 text-sm text-gray-500"><span class="font-semibold">Click to upload
+                                                SCORM package</span> or drag and drop</p>
+                                        <p class="text-xs text-gray-500">ZIP files up to 100MB</p>
+                                    </div>
+                                    <input id="scorm_package" name="scorm_package" type="file" class="hidden" accept=".zip"
+                                        required />
+                                </label>
+                            </div>
+                            <div class="text-red-500 text-sm mt-1 hidden" id="scorm_error"></div>
+                        </div>
+
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                            {{-- Category Selection for SCORM --}}
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Category (Optional)</label>
+                                <select name="category_id" id="scorm_category"
+                                    class="w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition">
+                                    <option value="">Auto-assign to SCORM Courses category</option>
+                                    @foreach($categories as $category)
+                                        <option value="{{ $category->id }}">{{ $category->name }}</option>
+                                    @endforeach
+                                </select>
+                                <p class="text-xs text-gray-500 mt-1">If not selected, course will be added to "SCORM
+                                    Courses"
+                                    category</p>
+                            </div>
+
+                            {{-- Price for SCORM --}}
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Price (IDR)</label>
+                                <div class="relative">
+                                    <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">Rp</span>
+                                    <input type="number" name="price" id="scorm_price"
+                                        class="w-full pl-12 pr-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition"
+                                        placeholder="0" min="0" value="0">
+                                </div>
+                                <p class="text-xs text-gray-500 mt-1">Enter 0 for free course</p>
+                            </div>
+
+                            {{-- Level for SCORM --}}
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Course Level</label>
+                                <select name="level" id="scorm_level"
+                                    class="w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition">
+                                    <option value="beginner">Beginner</option>
+                                    <option value="intermediate">Intermediate</option>
+                                    <option value="advanced">Advanced</option>
+                                </select>
+                            </div>
+
+                            {{-- Duration Override --}}
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Duration (Hours)</label>
+                                <input type="number" name="duration_hours" id="scorm_duration"
+                                    class="w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition"
+                                    placeholder="Auto-calculated" min="1">
+                                <p class="text-xs text-gray-500 mt-1">Leave empty for auto-calculation</p>
+                            </div>
+                        </div>
+
+                        {{-- Custom Description --}}
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Course Description
+                                (Optional)</label>
+                            <textarea name="description" id="scorm_description" rows="3"
+                                class="w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition"
+                                placeholder="Enter custom description (will override SCORM description if provided)"></textarea>
+                            <p class="text-xs text-gray-500 mt-1">If left empty, description will be extracted from SCORM
+                                package</p>
+                        </div>
+
+                        {{-- SCORM Action Buttons --}}
+                        <div class="flex justify-between items-center pt-4 border-t border-gray-200">
+                            <button type="button" onclick="showRegularForm()"
+                                class="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition">
+                                Back to Regular Form
+                            </button>
+                            <button type="submit" id="scormUploadBtn"
+                                class="px-8 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50">
+                                <span class="upload-text">Upload SCORM Package</span>
+                                <span class="loading-text hidden">Processing...</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                {{-- Regular Course Creation Form --}}
+                <div id="regularForm" class="bg-white rounded-xl shadow-sm">
+                    <div class="p-6 border-b border-gray-200">
+                        <h2 class="text-xl font-semibold text-gray-900">Create Course Manually</h2>
+                        <p class="text-gray-600 mt-1">Fill in the course details and add content manually</p>
+                    </div>
                     <form id="createCourseForm" class="p-6" enctype="multipart/form-data">
                         @csrf
 
@@ -195,12 +335,16 @@
                             </div>
                         </div>
 
-                        {{-- Action Buttons --}}
-                        <div class="flex justify-between items-center mt-8 pt-6 border-t border-gray-200">
-                            <a href="/admin/dashboard"
-                                class="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
-                                Cancel
-                            </a>
+
+                    </form>
+
+                    {{-- Regular Form Action Buttons --}}
+                    <div class="px-6 pb-6">
+                        <div class="flex justify-between items-center pt-4 border-t border-gray-200">
+                            <button type="button" onclick="showScormForm()"
+                                class="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition">
+                                Switch to SCORM Upload
+                            </button>
                             <div class="flex gap-3">
                                 <button type="button" onclick="saveCourse('draft')"
                                     class="px-6 py-3 bg-yellow-100 text-yellow-800 rounded-lg hover:bg-yellow-200 transition-colors">
@@ -212,7 +356,7 @@
                                 </button>
                             </div>
                         </div>
-                    </form>
+                    </div>
                 </div>
             </div>
         </main>
@@ -258,13 +402,13 @@
                         const fileInfo = uploadArea.querySelector('.flex.flex-col.items-center.justify-center');
                         if (fileInfo) {
                             fileInfo.innerHTML = `
-                                    <svg class="w-8 h-8 mb-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                    </svg>
-                                    <p class="mb-2 text-sm text-green-600 font-semibold">${file.name}</p>
-                                    <p class="text-xs text-gray-500">Size: ${(file.size / (1024 * 1024)).toFixed(2)} MB</p>
-                                    <p class="text-xs text-gray-400 mt-1">Click to change file</p>
-                                `;
+                                                                <svg class="w-8 h-8 mb-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                                                </svg>
+                                                                <p class="mb-2 text-sm text-green-600 font-semibold">${file.name}</p>
+                                                                <p class="text-xs text-gray-500">Size: ${(file.size / (1024 * 1024)).toFixed(2)} MB</p>
+                                                                <p class="text-xs text-gray-400 mt-1">Click to change file</p>
+                                                            `;
                         }
 
                         // Auto-fill video title if empty
@@ -307,25 +451,25 @@
                         const fileInfo = uploadArea.querySelector('.flex.flex-col.items-center.justify-center');
                         if (fileInfo) {
                             fileInfo.innerHTML = `
-                                    <svg class="w-8 h-8 mb-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                    </svg>
-                                    <p class="mb-2 text-sm text-green-600 font-semibold">${file.name}</p>
-                                    <p class="text-xs text-gray-500">Size: ${(file.size / (1024 * 1024)).toFixed(2)} MB</p>
-                                    <p class="text-xs text-gray-400 mt-1">Click to change file</p>
-                                `;
+                                                                <svg class="w-8 h-8 mb-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                                                </svg>
+                                                                <p class="mb-2 text-sm text-green-600 font-semibold">${file.name}</p>
+                                                                <p class="text-xs text-gray-500">Size: ${(file.size / (1024 * 1024)).toFixed(2)} MB</p>
+                                                                <p class="text-xs text-gray-400 mt-1">Click to change file</p>
+                                                            `;
                         }
                     } else {
                         // Reset to original state
                         const fileInfo = uploadArea.querySelector('.flex.flex-col.items-center.justify-center');
                         if (fileInfo) {
                             fileInfo.innerHTML = `
-                                    <svg class="w-8 h-8 mb-4 text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
-                                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2" />
-                                    </svg>
-                                    <p class="mb-2 text-sm text-gray-500"><span class="font-semibold">Click to upload</span> or drag and drop</p>
-                                    <p class="text-xs text-gray-500">PNG, JPG, GIF up to 2MB</p>
-                                `;
+                                                                <svg class="w-8 h-8 mb-4 text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16">
+                                                                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2" />
+                                                                </svg>
+                                                                <p class="mb-2 text-sm text-gray-500"><span class="font-semibold">Click to upload</span> or drag and drop</p>
+                                                                <p class="text-xs text-gray-500">PNG, JPG, GIF up to 2MB</p>
+                                                            `;
                         }
                     }
                 });
@@ -401,11 +545,11 @@
             const originalText = clickedButton.innerHTML;
 
             clickedButton.innerHTML = `
-                    <svg class="w-4 h-4 animate-spin inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                    </svg>
-                    ${status === 'published' ? 'Publishing...' : 'Saving...'}
-                `;
+                                                <svg class="w-4 h-4 animate-spin inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                                                </svg>
+                                                ${status === 'published' ? 'Publishing...' : 'Saving...'}
+                                            `;
             clickedButton.disabled = true;
 
             // Disable all form buttons during submission
@@ -467,6 +611,186 @@
                     // Restore button states
                     clickedButton.innerHTML = originalText;
                     buttons.forEach(btn => btn.disabled = false);
+                });
+        }
+
+        // Form switching functions
+        function showRegularForm() {
+            document.getElementById('regularForm').classList.remove('hidden');
+            document.getElementById('scormForm').classList.add('hidden');
+        }
+
+        function showScormForm() {
+            document.getElementById('scormForm').classList.remove('hidden');
+            document.getElementById('regularForm').classList.add('hidden');
+        }
+
+        // SCORM upload handler
+        document.addEventListener('DOMContentLoaded', function () {
+            const scormForm = document.getElementById('scormUploadForm');
+            if (scormForm) {
+                scormForm.addEventListener('submit', function (e) {
+                    e.preventDefault();
+                    uploadScormPackage();
+                });
+            }
+
+            // Initialize SCORM file upload
+            initializeScormUpload();
+        });
+
+        function initializeScormUpload() {
+            const scormInput = document.getElementById('scorm_package');
+            if (scormInput) {
+                scormInput.addEventListener('change', function (e) {
+                    const file = e.target.files[0];
+                    const uploadArea = document.querySelector('label[for="scorm_package"]');
+
+                    if (file && uploadArea) {
+                        // Validate file type and size
+                        if (file.type !== 'application/zip' && !file.name.toLowerCase().endsWith('.zip')) {
+                            alert('Please select a valid ZIP file');
+                            e.target.value = '';
+                            return;
+                        }
+
+                        const maxSize = 100 * 1024 * 1024; // 100MB
+                        if (file.size > maxSize) {
+                            alert('File size must be less than 100MB');
+                            e.target.value = '';
+                            return;
+                        }
+
+                        // Update upload area to show selected file
+                        const fileInfo = uploadArea.querySelector('.flex.flex-col.items-center.justify-center');
+                        if (fileInfo) {
+                            fileInfo.innerHTML = `
+                                                            <svg class="w-8 h-8 mb-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                                            </svg>
+                                                            <p class="mb-2 text-sm text-green-600 font-semibold">${file.name}</p>
+                                                            <p class="text-xs text-gray-500">Size: ${(file.size / (1024 * 1024)).toFixed(2)} MB</p>
+                                                            <p class="text-xs text-gray-400 mt-1">Click to change file</p>
+                                                        `;
+                        }
+                    }
+                });
+            }
+        }
+
+        function uploadScormPackage() {
+            const form = document.getElementById('scormUploadForm');
+            const formData = new FormData(form);
+            const button = document.getElementById('scormUploadBtn');
+            const uploadText = button.querySelector('.upload-text');
+            const loadingText = button.querySelector('.loading-text');
+
+            // Validate required fields
+            const scormFile = document.getElementById('scorm_package');
+            if (!scormFile.files || !scormFile.files[0]) {
+                alert('Please select a SCORM package file');
+                return;
+            }
+
+            // Validate category is selected
+            const categoryId = document.getElementById('scorm_category')?.value;
+            if (!categoryId) {
+                alert('Please select a category');
+                return;
+            }
+
+            // Ensure description is not empty
+            const description = document.getElementById('scorm_description')?.value || '';
+            formData.set('description', description);
+
+            // Get CSRF token
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            if (!csrfToken) {
+                alert('Security token not found. Please refresh the page.');
+                return;
+            }
+
+            // Clear previous errors
+            document.querySelectorAll('.text-red-500').forEach(el => {
+                el.classList.add('hidden');
+                el.textContent = '';
+            });
+
+            // Disable button and show loading
+            button.disabled = true;
+            uploadText.classList.add('hidden');
+            loadingText.classList.remove('hidden');
+
+            console.log('Uploading SCORM package to:', '{{ route("admin.courses.create-scorm") }}');
+            console.log('FormData entries:');
+            for (let [key, value] of formData.entries()) {
+                console.log(key, value);
+            }
+
+            fetch('{{ route("admin.courses.create-scorm") }}', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRF-TOKEN': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            })
+                .then(response => {
+                    console.log('Response status:', response.status);
+                    console.log('Response headers:', response.headers);
+
+                    return response.text().then(text => {
+                        console.log('Raw response:', text);
+                        try {
+                            return JSON.parse(text);
+                        } catch (e) {
+                            console.error('Failed to parse JSON:', text);
+                            throw new Error('Server returned HTML instead of JSON. Check server logs for errors.');
+                        }
+                    });
+                })
+                .then(data => {
+                    console.log('Parsed data:', data);
+
+                    if (data.success) {
+                        alert(data.message);
+                        if (data.redirect) {
+                            window.location.href = data.redirect;
+                        } else {
+                            window.location.href = "/admin/dashboard";
+                        }
+                    } else {
+                        if (data.errors) {
+                            Object.keys(data.errors).forEach(field => {
+                                // Handle field name mapping
+                                let fieldName = field;
+                                if (field === 'scorm_package') {
+                                    fieldName = 'scorm';
+                                }
+
+                                const errorEl = document.getElementById(fieldName + '_error');
+                                if (errorEl) {
+                                    errorEl.textContent = data.errors[field][0];
+                                    errorEl.classList.remove('hidden');
+                                } else {
+                                    console.warn('Error element not found for field:', fieldName);
+                                }
+                            });
+                        } else {
+                            alert(data.error || 'Failed to upload SCORM package.');
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while uploading SCORM package: ' + error.message);
+                })
+                .finally(() => {
+                    // Restore button state
+                    button.disabled = false;
+                    uploadText.classList.remove('hidden');
+                    loadingText.classList.add('hidden');
                 });
         }
     </script>

@@ -29,6 +29,11 @@ class Course extends Model
         'price',
         'is_published',
         'level',
+        'content_type',
+        'scorm_version',
+        'scorm_manifest',
+        'scorm_entry_point',
+        'scorm_package_path',
         'duration_hours',
         'curriculum',
         'total_chapters',
@@ -41,6 +46,7 @@ class Course extends Model
     protected $casts = [
         'price' => 'decimal:2',
         'curriculum' => 'json',
+        'scorm_manifest' => 'json',
         'published_at' => 'datetime',
         'average_rating' => 'decimal:2'
     ];

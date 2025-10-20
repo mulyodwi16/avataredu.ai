@@ -203,7 +203,90 @@
             <!-- Main Content Area -->
             <div class="flex-1 lg:ml-80 min-h-screen">
                 <div id="lesson-content" class="p-4 lg:p-8">
-                    @if($course->chapters->flatMap->lessons->count() > 0)
+                    {{-- SCORM Course Display --}}
+                    @if($course->content_type === 'scorm' && $course->scorm_package_path)
+                        @php
+                            $entryPoint = $course->scorm_entry_point ?? 'index.html';
+                            $scormUrl = route('courses.scorm-file', ['course' => $course->id, 'path' => $entryPoint]);
+                        @endphp
+
+                        <!-- SCORM Player Container -->
+                        <div class="mb-8">
+                            <div class="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
+                                <!-- SCORM Header -->
+                                <div class="bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-4">
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <h2 class="text-white text-lg font-semibold">SCORM Course Content</h2>
+                                            <p class="text-blue-100 text-sm">{{ $course->scorm_version ?? 'SCORM 1.2' }}</p>
+                                        </div>
+                                        <div class="bg-white/20 px-4 py-2 rounded-lg">
+                                            <span class="text-white text-sm font-medium">{{ $course->scorm_version ?? 'SCORM 1.2' }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- SCORM Player -->
+                                <div style="height: 100vh; max-height: 900px;">
+                                    <iframe id="scorm-player" 
+                                        src="{{ $scormUrl }}" 
+                                        style="width: 100%; height: 100%; border: none;"
+                                        title="SCORM Course Content" 
+                                        allow="fullscreen"
+                                        onload="console.log('SCORM iframe loaded successfully')"
+                                        onerror="console.error('SCORM iframe failed to load')">
+                                    </iframe>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- SCORM Course Info -->
+                        <div class="grid md:grid-cols-3 gap-6 mb-8">
+                            {{-- Course Details --}}
+                            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+                                <h3 class="text-lg font-semibold text-gray-900 mb-4">Course Details</h3>
+                                <div class="space-y-4">
+                                    <div>
+                                        <p class="text-sm text-gray-600 font-medium">Title</p>
+                                        <p class="font-medium text-gray-900">{{ $course->title }}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm text-gray-600 font-medium">Level</p>
+                                        <p class="font-medium text-gray-900 capitalize">{{ $course->level ?? 'N/A' }}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm text-gray-600 font-medium">Course Type</p>
+                                        <p class="font-medium text-purple-600 inline-block bg-purple-50 px-3 py-1 rounded-full text-sm">{{ $course->scorm_version ?? 'SCORM' }}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {{-- Course Description --}}
+                            <div class="md:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+                                <h3 class="text-lg font-semibold text-gray-900 mb-4">About This Course</h3>
+                                <p class="text-gray-700 leading-relaxed">
+                                    {{ $course->description ?? 'No description available.' }}
+                                </p>
+                                @if($course->duration_hours)
+                                    <div class="mt-4 pt-4 border-t border-gray-200">
+                                        <p class="text-sm text-gray-600">
+                                            <span class="font-semibold">Estimated Duration:</span> {{ $course->duration_hours }} hour{{ $course->duration_hours > 1 ? 's' : '' }}
+                                        </p>
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+
+                        <!-- Back to Dashboard Button -->
+                        <div class="flex justify-center">
+                            <a href="{{ route('dashboard') }}"
+                                class="px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-200 font-semibold shadow-md">
+                                ← Return to Dashboard
+                            </a>
+                        </div>
+
+                    {{-- Regular Course Display --}}
+                    @elseif($course->chapters->flatMap->lessons->count() > 0)
                         @php
                             $currentLessonId = request()->get('lesson') ?? $course->chapters->first()?->lessons->first()?->id;
                             $currentLesson = $course->chapters->flatMap->lessons->where('id', $currentLessonId)->first();
@@ -329,66 +412,65 @@
                                 <p class="text-gray-500 text-lg">Choose a lesson from the sidebar to begin your learning journey.</p>
                             </div>
                         @endif
-                    @else
+                    @elseif($course->main_video_url)
                         <!-- Enhanced Simple Video Course Display -->
-                        @if($course->main_video_url)
-                            <div class="mb-8">
-                                <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 lg:p-8">
-                                    <h1 class="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">{{ $course->video_title ?? $course->title }}</h1>
-                                    <p class="text-lg text-gray-600 leading-relaxed mb-6">{{ $course->description }}</p>
+                        <div class="mb-8">
+                            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 lg:p-8">
+                                <h1 class="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">{{ $course->video_title ?? $course->title }}</h1>
+                                <p class="text-lg text-gray-600 leading-relaxed mb-6">{{ $course->description }}</p>
+                            </div>
+                        </div>
+
+                        <!-- Enhanced Video Player for Simple Course -->
+                        <div class="mb-8">
+                            <div class="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
+                                <div class="aspect-video bg-black relative">
+                                    <video id="course-video" 
+                                           class="w-full h-full object-contain" 
+                                           controls 
+                                           controlsList="nodownload"
+                                           poster="{{ $course->thumbnail ? asset('storage/' . $course->thumbnail) : '' }}">
+                                        <source src="{{ asset('storage/' . $course->main_video_url) }}" type="video/mp4">
+                                        Your browser does not support the video tag.
+                                    </video>
                                 </div>
                             </div>
+                        </div>
 
-                            <!-- Enhanced Video Player for Simple Course -->
-                            <div class="mb-8">
-                                <div class="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
-                                    <div class="aspect-video bg-black relative">
-                                        <video id="course-video" 
-                                               class="w-full h-full object-contain" 
-                                               controls 
-                                               controlsList="nodownload"
-                                               poster="{{ $course->thumbnail ? asset('storage/' . $course->thumbnail) : '' }}">
-                                            <source src="{{ asset('storage/' . $course->main_video_url) }}" type="video/mp4">
-                                            Your browser does not support the video tag.
-                                        </video>
+                        <!-- Enhanced Course Info -->
+                        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 lg:p-8 mb-8">
+                            <h3 class="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
+                                <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                                    <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                                    </svg>
+                                </div>
+                                About This Course
+                            </h3>
+                            <div class="prose prose-lg max-w-none text-gray-700 leading-relaxed">
+                                <p>{{ $course->description }}</p>
+                                @if($course->instructor)
+                                    <div class="mt-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl border border-blue-100">
+                                        <p class="text-sm font-semibold text-gray-900 mb-1">Instructor</p>
+                                        <p class="text-blue-600 font-medium">{{ $course->instructor }}</p>
                                     </div>
-                                </div>
+                                @endif
                             </div>
+                        </div>
 
-                            <!-- Enhanced Course Info -->
-                            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 lg:p-8 mb-8">
-                                <h3 class="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
-                                    <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                                        <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
-                                        </svg>
-                                    </div>
-                                    About This Course
-                                </h3>
-                                <div class="prose prose-lg max-w-none text-gray-700 leading-relaxed">
-                                    <p>{{ $course->description }}</p>
-                                    @if($course->instructor)
-                                        <div class="mt-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl border border-blue-100">
-                                            <p class="text-sm font-semibold text-gray-900 mb-1">Instructor</p>
-                                            <p class="text-blue-600 font-medium">{{ $course->instructor }}</p>
-                                        </div>
-                                    @endif
-                                </div>
-                            </div>
+                        <!-- Enhanced Course Completion Button -->
+                        <div class="flex justify-center">
+                            @php
+                                $enrollment = Auth::user()->enrollments()->where('course_id', $course->id)->first();
+                                $isCompleted = $enrollment ? $enrollment->isCompleted() : false;
+                            @endphp
 
-                            <!-- Enhanced Course Completion Button -->
-                            <div class="flex justify-center">
-                                @php
-                                    $enrollment = Auth::user()->enrollments()->where('course_id', $course->id)->first();
-                                    $isCompleted = $enrollment ? $enrollment->isCompleted() : false;
-                                @endphp
-
-                                <button onclick="toggleCourseComplete({{ $course->id }})"
-                                    class="px-12 py-4 rounded-xl font-bold text-lg transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-opacity-50
-                                           {{ $isCompleted ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:from-green-600 hover:to-emerald-700 focus:ring-green-300 shadow-lg' : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 focus:ring-blue-300 shadow-lg' }}">
-                                    {{ $isCompleted ? '✓ Course Completed' : 'Mark Course as Complete' }}
-                                </button>
-                            </div>
+                            <button onclick="toggleCourseComplete({{ $course->id }})"
+                                class="px-12 py-4 rounded-xl font-bold text-lg transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-opacity-50
+                                       {{ $isCompleted ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:from-green-600 hover:to-emerald-700 focus:ring-green-300 shadow-lg' : 'bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 focus:ring-blue-300 shadow-lg' }}">
+                                {{ $isCompleted ? '✓ Course Completed' : 'Mark Course as Complete' }}
+                            </button>
+                        </div>
                         @else
                             <!-- Enhanced No Content Available -->
                             <div class="text-center py-20">
@@ -408,7 +490,6 @@
                                 </div>
                             </div>
                         @endif
-                    @endif
                 </div>
             </div>
         </div>

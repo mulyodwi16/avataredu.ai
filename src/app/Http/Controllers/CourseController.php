@@ -14,6 +14,14 @@ class CourseController extends Controller
      */
     public function learn(Course $course)
     {
+        // Debug logging
+        \Log::info('Learn page accessed', [
+            'course_id' => $course->id,
+            'content_type' => $course->content_type,
+            'scorm_package_path' => $course->scorm_package_path,
+            'is_scorm' => $course->content_type === 'scorm'
+        ]);
+
         // Check if user is enrolled in the course
         $enrollment = Auth::user()->enrollments()
             ->where('course_id', $course->id)
@@ -21,6 +29,12 @@ class CourseController extends Controller
 
         if (!$enrollment) {
             return redirect()->route('dashboard')->with('error', 'You are not enrolled in this course.');
+        }
+
+        // If it's a SCORM course, display it directly
+        if ($course->content_type === 'scorm' && $course->scorm_package_path) {
+            \Log::info('Serving SCORM course', ['course_id' => $course->id]);
+            return view('pages.course-learn-scorm', compact('course', 'enrollment'));
         }
 
         // Get course with chapters and lessons
