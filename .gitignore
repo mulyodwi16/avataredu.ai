@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # --- Laravel ---
 /vendor/
 /node_modules/
@@ -36,3 +37,43 @@ certbot/www/.well-known/acme-challenge/*
 .idea/
 .DS_Store
 Thumbs.db
+=======
+# --- Laravel ---
+/vendor/
+/node_modules/
+/public/hot
+/public/storage
+/storage/*.key
+/storage/framework/cache/*
+/storage/framework/sessions/*
+/storage/framework/views/*
+/bootstrap/cache/*
+.env
+.env.*.local
+src/.env
+
+# --- Logs ---
+*.log
+storage/logs/*.log
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# --- Docker ---
+docker-compose.yml
+.env.docker
+*.pid
+*.seed
+*.sql
+docker/nginx/default.conf
+
+# --- Certbot (private keys & challenges) ---
+certbot/letsencrypt/
+certbot/www/.well-known/acme-challenge/*
+
+# --- IDE / OS ---
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+>>>>>>> ef3a91e380e67cafa31e5e51356f6b474aeabbc2
