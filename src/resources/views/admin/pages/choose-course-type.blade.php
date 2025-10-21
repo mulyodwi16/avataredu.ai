@@ -30,7 +30,7 @@
                 {{-- Course Type Selection --}}
                 <div class="grid md:grid-cols-2 gap-6">
                     {{-- Regular Course Card --}}
-                    <a href="{{ route('admin.courses.create-regular') }}"
+                    <a href="{{ route('admin.dashboard.courses.create-regular') }}"
                         class="group block p-8 bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-lg hover:border-blue-300 transition-all">
                         <div class="flex flex-col items-center text-center">
                             <div
@@ -85,7 +85,7 @@
                     </a>
 
                     {{-- SCORM Course Card --}}
-                    <a href="{{ route('admin.courses.create-scorm-form') }}"
+                    <a href="{{ route('admin.dashboard.courses.create-scorm-form') }}"
                         class="group block p-8 bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-lg hover:border-green-300 transition-all">
                         <div class="flex flex-col items-center text-center">
                             <div

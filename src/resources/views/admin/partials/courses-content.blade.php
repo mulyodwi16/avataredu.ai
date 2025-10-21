@@ -26,7 +26,7 @@
                 </select>
                 
                 <!-- Create Button -->
-                <a href="/admin/createcourse"
+                <a href="/admin/dashboard/createcourse"
                     class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-2 whitespace-nowrap">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
@@ -124,7 +124,7 @@
                                 
                                 @if($course->creator_id === auth()->id())
                                     <!-- Admin bisa edit course mereka sendiri -->
-                                    <a href="/admin/editcourse/{{ $course->id }}"
+                                    <a href="/admin/dashboard/editcourse/{{ $course->id }}"
                                         class="flex-1 text-sm px-3 py-2 bg-primary text-white hover:bg-primary/90 rounded-lg font-medium transition-colors text-center">
                                         Edit
                                     </a>
@@ -136,7 +136,7 @@
                                     </button>
                                 @elseif(auth()->user()->isSuperAdmin())
                                     <!-- Superadmin bisa edit dan hapus course siapa saja -->
-                                    <a href="/admin/editcourse/{{ $course->id }}"
+                                    <a href="/admin/dashboard/editcourse/{{ $course->id }}"
                                         class="flex-1 text-sm px-3 py-2 bg-primary text-white hover:bg-primaryDark rounded-lg font-medium transition-colors text-center">
                                         Edit (Super)
                                     </a>
@@ -176,7 +176,7 @@
                 </div>
                 <h3 class="text-lg font-medium text-gray-900 mb-2">No Courses Found</h3>
                 <p class="text-gray-600 mb-6">Get started by creating your first course.</p>
-                <a href="/admin/createcourse"
+                <a href="/admin/dashboard/createcourse"
                     class="inline-block bg-primary text-white px-6 py-2 rounded-lg hover:bg-primary/90">
                     Create Your First Course
                 </a>

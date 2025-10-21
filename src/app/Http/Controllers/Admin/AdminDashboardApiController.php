@@ -544,6 +544,20 @@ class AdminDashboardApiController extends Controller
     public function updateCourse(Request $request, Course $course): JsonResponse
     {
         try {
+            // Check authorization
+            if (!auth()->user()->isSuperAdmin() && $course->creator_id !== auth()->id()) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Unauthorized. You can only update your own courses.'
+                ], 403);
+            }
+
+            \Log::info('Updating course', [
+                'course_id' => $course->id,
+                'user_id' => auth()->id(),
+                'request_data' => $request->all()
+            ]);
+
             $request->validate([
                 'title' => 'required|string|max:255',
                 'description' => 'required|string',
@@ -576,6 +590,8 @@ class AdminDashboardApiController extends Controller
 
             $course->save();
 
+            \Log::info('Course updated successfully', ['course_id' => $course->id]);
+
             return response()->json([
                 'success' => true,
                 'message' => 'Course updated successfully',
@@ -583,13 +599,17 @@ class AdminDashboardApiController extends Controller
             ]);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
+            \Log::warning('Course update validation failed', ['errors' => $e->errors()]);
             return response()->json([
                 'success' => false,
                 'errors' => $e->errors()
             ], 422);
         } catch (\Exception $e) {
-            \Log::error('Course update error: ' . $e->getMessage());
-            return response()->json(['error' => 'Failed to update course'], 500);
+            \Log::error('Course update error: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to update course: ' . $e->getMessage()
+            ], 500);
         }
     }
 
@@ -765,7 +785,7 @@ class AdminDashboardApiController extends Controller
                 'success' => true,
                 'message' => 'SCORM course created successfully!',
                 'course' => $course,
-                'redirect' => route('admin.editcourse', $course)
+                'redirect' => route('admin.dashboard.editcourse', $course)
             ]);
 
         } catch (\Exception $e) {

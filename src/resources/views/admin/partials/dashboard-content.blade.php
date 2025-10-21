@@ -99,8 +99,8 @@
                                 <div class="flex gap-2">
                                     <button onclick="loadAdminPage('courses/{{ $course->id }}')"
                                         class="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded transition-colors">View</button>
-                                    <button onclick="loadAdminPage('courses/{{ $course->id }}/edit')"
-                                        class="text-xs px-2 py-1 bg-primary hover:bg-primary/90 text-white rounded transition-colors">Edit</button>
+                                    <a href="/admin/dashboard/editcourse/{{ $course->id }}"
+                                        class="text-xs px-2 py-1 bg-primary hover:bg-primary/90 text-white rounded transition-colors text-center">Edit</a>
                                 </div>
                             </div>
                         </div>
@@ -117,7 +117,7 @@
                 </div>
                 <h4 class="text-base font-medium text-gray-900 mb-2">No courses created yet</h4>
                 <p class="text-sm text-gray-600 mb-4">Start creating your first course to help students learn</p>
-                <a href="/admin/createcourse"
+                <a href="/admin/dashboard/createcourse"
                     class="inline-block bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 text-sm font-medium transition-colors">
                     Create Your First Course
                 </a>
@@ -134,7 +134,7 @@
         </div>
         <div class="p-4">
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                <a href="/admin/createcourse"
+                <a href="/admin/dashboard/createcourse"
                     class="flex items-center justify-center gap-2 bg-primary text-white px-4 py-3 rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"

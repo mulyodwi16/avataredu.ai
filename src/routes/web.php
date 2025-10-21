@@ -94,6 +94,14 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
         // Admin Dashboard
         Route::get('/dashboard', [App\Http\Controllers\Admin\DashboardController::class, 'index'])->name('dashboard');
 
+        // Dashboard sub-routes (better organization)
+        Route::prefix('dashboard')->name('dashboard.')->group(function () {
+            Route::get('/createcourse', [App\Http\Controllers\Admin\AdminDashboardApiController::class, 'showChooseCourseType'])->name('createcourse');
+            Route::get('/courses/create', [App\Http\Controllers\Admin\AdminDashboardApiController::class, 'showCreateCourse'])->name('courses.create-regular');
+            Route::get('/courses/create/scorm', [App\Http\Controllers\Admin\AdminDashboardApiController::class, 'showCreateScormCourse'])->name('courses.create-scorm-form');
+            Route::get('/editcourse/{course}', [App\Http\Controllers\Admin\AdminDashboardApiController::class, 'showEditCourse'])->name('editcourse');
+        });
+
         // Admin Dashboard API for single page navigation  
         Route::get('/api/dashboard/{page}', [App\Http\Controllers\Admin\AdminDashboardApiController::class, 'getContent'])->where('page', '.*')->name('api.dashboard');
         Route::delete('/api/courses/{course}', [App\Http\Controllers\Admin\AdminDashboardApiController::class, 'deleteCourse'])->name('courses.api.delete');
@@ -107,16 +115,11 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
         // Course Management API handled via AdminDashboardApiController
         Route::get('/courses', [App\Http\Controllers\Admin\AdminDashboardApiController::class, 'index'])->name('courses.index');
 
-        // Separate pages for create and edit
-        Route::get('/createcourse', [App\Http\Controllers\Admin\AdminDashboardApiController::class, 'showChooseCourseType'])->name('createcourse');
-        Route::get('/courses/create', [App\Http\Controllers\Admin\AdminDashboardApiController::class, 'showCreateCourse'])->name('courses.create-regular');
-        Route::get('/courses/create/scorm', [App\Http\Controllers\Admin\AdminDashboardApiController::class, 'showCreateScormCourse'])->name('courses.create-scorm-form');
-        Route::get('/editcourse/{course}', [App\Http\Controllers\Admin\AdminDashboardApiController::class, 'showEditCourse'])->name('editcourse');
-
-        // Keep original API routes for backward compatibility
+        // Course API Routes
         Route::post('/courses', [App\Http\Controllers\Admin\AdminDashboardApiController::class, 'storeCourse'])->name('courses.store');
         Route::get('/courses/{course}/edit', [App\Http\Controllers\Admin\AdminDashboardApiController::class, 'edit'])->name('courses.edit');
         Route::put('/courses/{course}', [App\Http\Controllers\Admin\AdminDashboardApiController::class, 'updateCourse'])->name('courses.update');
+        Route::delete('/courses/{course}', [App\Http\Controllers\Admin\AdminDashboardApiController::class, 'deleteCourse'])->name('courses.delete');
 
         // Simple Video Upload
         Route::post('/courses/{course}/upload-video', [App\Http\Controllers\Admin\AdminDashboardApiController::class, 'uploadVideo'])->name('courses.upload-video');
