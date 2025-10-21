@@ -20,11 +20,12 @@ yarn-error.log*
 pnpm-debug.log*
 
 # --- Docker ---
-docker-compose.override.yml
+docker-compose.yml
 .env.docker
 *.pid
 *.seed
 *.sql
+docker/nginx/default.conf
 
 # --- Certbot (private keys & challenges) ---
 certbot/letsencrypt/
