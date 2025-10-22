@@ -13,6 +13,7 @@ class CourseScormChapter extends Model
     protected $fillable = [
         'course_id',
         'title',
+        'filename',
         'description',
         'order',
         'scorm_version',

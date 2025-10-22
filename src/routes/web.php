@@ -120,6 +120,7 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
         Route::get('/courses/{course}/edit', [App\Http\Controllers\Admin\AdminDashboardApiController::class, 'edit'])->name('courses.edit');
         Route::put('/courses/{course}', [App\Http\Controllers\Admin\AdminDashboardApiController::class, 'updateCourse'])->name('courses.update');
         Route::delete('/courses/{course}', [App\Http\Controllers\Admin\AdminDashboardApiController::class, 'deleteCourse'])->name('courses.delete');
+        Route::post('/courses/{course}/reorder-chapters', [App\Http\Controllers\Admin\AdminDashboardApiController::class, 'reorderChapters'])->name('courses.reorder-chapters');
 
         // Simple Video Upload
         Route::post('/courses/{course}/upload-video', [App\Http\Controllers\Admin\AdminDashboardApiController::class, 'uploadVideo'])->name('courses.upload-video');

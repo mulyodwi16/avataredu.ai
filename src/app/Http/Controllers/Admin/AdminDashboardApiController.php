@@ -6,12 +6,15 @@ use App\Http\Controllers\Controller;
 use App\Services\AdminService;
 use App\Services\CourseService;
 use App\Models\Course;
+use App\Models\CourseScormChapter;
 use App\Models\User;
 use App\Models\Category;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use ZipArchive;
+use DOMDocument;
 
 class AdminDashboardApiController extends Controller
 {
@@ -564,7 +567,7 @@ class AdminDashboardApiController extends Controller
                 'category_id' => 'required|exists:categories,id',
                 'price' => 'required|numeric|min:0',
                 'level' => 'required|in:beginner,intermediate,advanced',
-                'duration_hours' => 'required|integer|min:1',
+                'duration_hours' => 'nullable|integer|min:0',
                 'thumbnail' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
                 'is_published' => 'boolean'
             ]);
@@ -572,9 +575,9 @@ class AdminDashboardApiController extends Controller
             $course->title = $request->title;
             $course->description = $request->description;
             $course->category_id = $request->category_id;
-            $course->price = $request->price;
+            $course->price = $request->input('price', 0) ?: 0;
             $course->level = $request->level;
-            $course->duration_hours = $request->duration_hours;
+            $course->duration_hours = $request->input('duration_hours', 0) ?: 0;
             $course->is_published = $request->boolean('is_published', $course->is_published);
 
             // Handle thumbnail upload
@@ -723,46 +726,29 @@ class AdminDashboardApiController extends Controller
     }
 
     /**
-     * Create course from SCORM package
+     * Create course from SCORM package(s)
      */
     public function createScormCourse(Request $request): JsonResponse
     {
         try {
-            // Basic validation
-            if (!$request->hasFile('scorm_package')) {
+            // Support both single and multiple files
+            $files = [];
+            if ($request->hasFile('scorm_packages')) {
+                $files = is_array($request->file('scorm_packages')) ? $request->file('scorm_packages') : [$request->file('scorm_packages')];
+            } elseif ($request->hasFile('scorm_package')) {
+                $files = [$request->file('scorm_package')];
+            }
+
+            \Log::info('Create SCORM course - files count: ' . count($files));
+
+            if (empty($files)) {
                 return response()->json([
                     'success' => false,
-                    'error' => 'SCORM package file is required'
+                    'error' => 'SCORM package file(s) required'
                 ], 400);
             }
 
-            $file = $request->file('scorm_package');
-
-            // Validate file
-            if (!$file->isValid()) {
-                return response()->json([
-                    'success' => false,
-                    'error' => 'Invalid file upload'
-                ], 400);
-            }
-
-            // Check file type
-            if ($file->getClientOriginalExtension() !== 'zip') {
-                return response()->json([
-                    'success' => false,
-                    'error' => 'SCORM package must be a ZIP file'
-                ], 400);
-            }
-
-            // Check file size (100MB max)
-            if ($file->getSize() > 100 * 1024 * 1024) {
-                return response()->json([
-                    'success' => false,
-                    'error' => 'File size must be less than 100MB'
-                ], 400);
-            }
-
-            // Validate category_id is provided
+            // Validate category
             if (!$request->input('category_id')) {
                 return response()->json([
                     'success' => false,
@@ -770,16 +756,71 @@ class AdminDashboardApiController extends Controller
                 ], 400);
             }
 
-            // Validate category exists
             if (!Category::find($request->input('category_id'))) {
                 return response()->json([
                     'success' => false,
-                    'error' => 'Selected category does not exist'
+                    'error' => 'Category not found'
                 ], 400);
             }
 
-            // Simple SCORM processing
-            $course = $this->processSimpleScorm($file, $request);
+            // Validate all files
+            foreach ($files as $file) {
+                if (!$file->isValid()) {
+                    return response()->json([
+                        'success' => false,
+                        'error' => 'Invalid file: ' . $file->getClientOriginalName()
+                    ], 400);
+                }
+
+                if ($file->getClientOriginalExtension() !== 'zip') {
+                    return response()->json([
+                        'success' => false,
+                        'error' => 'All files must be ZIP'
+                    ], 400);
+                }
+
+                if ($file->getSize() > 500 * 1024 * 1024) {
+                    return response()->json([
+                        'success' => false,
+                        'error' => 'File too large: ' . $file->getClientOriginalName()
+                    ], 400);
+                }
+            }
+
+            // Create course
+            $title = $request->input('title');
+            if (empty($title)) {
+                $title = pathinfo($files[0]->getClientOriginalName(), PATHINFO_FILENAME);
+            }
+
+            $description = $request->input('description');
+            if (empty($description)) {
+                $description = 'SCORM Multi-Chapter Course';
+            }
+
+            $course = Course::create([
+                'title' => $title,
+                'slug' => \Illuminate\Support\Str::slug($title) . '-' . uniqid(),
+                'description' => $description,
+                'price' => floatval($request->input('price')) ?? 0,
+                'level' => $request->input('level', 'beginner') ?? 'beginner',
+                'duration_hours' => intval($request->input('duration_hours')) ?? count($files),
+                'creator_id' => auth()->id(),
+                'category_id' => $request->input('category_id'),
+                'content_type' => count($files) > 1 ? 'scorm_multi' : 'scorm',
+                'is_published' => false,
+                'total_chapters' => count($files)
+            ]);
+
+            \Log::info('Course created: ' . $course->id);
+
+            // Process each file as a chapter
+            foreach ($files as $index => $file) {
+                \Log::info('Processing file ' . ($index + 1) . ': ' . $file->getClientOriginalName());
+                $this->processScormFile($course, $file, $index + 1);
+            }
+
+            \Log::info('All files processed successfully');
 
             return response()->json([
                 'success' => true,
@@ -789,11 +830,93 @@ class AdminDashboardApiController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            \Log::error('Create SCORM course error: ' . $e->getMessage());
+            \Log::error('Create SCORM course error: ' . $e->getMessage(), [
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
+            ]);
             return response()->json([
                 'success' => false,
-                'error' => 'Failed to create SCORM course: ' . $e->getMessage()
+                'error' => 'Failed: ' . $e->getMessage()
             ], 500);
+        }
+    }
+
+    private function processScormFile(Course $course, $file, $order = 1)
+    {
+        // Extract ZIP
+        $zip = new ZipArchive();
+        $extractPath = storage_path('app/scorm/' . uniqid('scorm_'));
+
+        if (!is_dir(dirname($extractPath))) {
+            mkdir(dirname($extractPath), 0755, true);
+        }
+
+        if ($zip->open($file->getPathname()) !== TRUE) {
+            throw new \Exception('Cannot open ZIP file');
+        }
+
+        $zip->extractTo($extractPath);
+        $zip->close();
+
+        // Find manifest
+        $manifestPath = $extractPath . '/imsmanifest.xml';
+        if (!file_exists($manifestPath)) {
+            throw new \Exception('imsmanifest.xml not found');
+        }
+
+        // Parse manifest
+        $dom = new DOMDocument();
+        $dom->load($manifestPath);
+
+        // Detect SCORM version
+        $scormVersion = '1.2';
+        if ($dom->documentElement->hasAttribute('xmlns')) {
+            $xmlns = $dom->documentElement->getAttribute('xmlns');
+            if (strpos($xmlns, '2004') !== false) {
+                $scormVersion = '2004';
+            }
+        }
+
+        // Get title
+        $titleNodes = $dom->getElementsByTagName('title');
+        $chapterTitle = $titleNodes->length > 0 ? $titleNodes->item(0)->textContent : pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+
+        // Get entry point
+        $entryPoint = 'index.html';
+        $resourceNodes = $dom->getElementsByTagName('resource');
+        if ($resourceNodes->length > 0) {
+            $href = $resourceNodes->item(0)->getAttribute('href');
+            if ($href) {
+                $entryPoint = $href;
+            }
+        }
+
+        // Create CourseScormChapter entry
+        $filename = $file->getClientOriginalName();
+
+        if ($course->content_type === 'scorm_multi') {
+            // Multi-chapter - always create chapter entry
+            $course->scormChapters()->create([
+                'title' => $chapterTitle,
+                'filename' => $filename,
+                'description' => 'Chapter ' . $order,
+                'order' => $order,
+                'scorm_version' => $scormVersion,
+                'scorm_manifest' => json_encode(['path' => $manifestPath]),
+                'scorm_entry_point' => $entryPoint,
+                'scorm_package_path' => basename($extractPath),
+                'duration_minutes' => 0,
+                'is_published' => true
+            ]);
+        } else {
+            // Single chapter - store in course directly
+            $course->update([
+                'scorm_version' => $scormVersion,
+                'scorm_entry_point' => $entryPoint,
+                'scorm_package_path' => basename($extractPath),
+                'scorm_manifest' => json_encode(['path' => $manifestPath])
+            ]);
         }
     }
 
@@ -1028,6 +1151,59 @@ class AdminDashboardApiController extends Controller
         } catch (\Exception $e) {
             \Log::error('Delete user error: ' . $e->getMessage());
             return response()->json(['error' => 'Failed to delete user: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Reorder SCORM chapters
+     */
+    public function reorderChapters(Request $request, Course $course): JsonResponse
+    {
+        try {
+            // Verify course is scorm_multi
+            if ($course->content_type !== 'scorm_multi') {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'This course does not support chapter reordering'
+                ], 400);
+            }
+
+            $chapters = $request->input('chapters', []);
+
+            if (empty($chapters)) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'No chapters provided'
+                ], 400);
+            }
+
+            \Log::info('Reordering chapters for course ' . $course->id, ['chapters' => $chapters]);
+
+            // Update order for each chapter
+            foreach ($chapters as $chapter) {
+                $chapterId = $chapter['id'] ?? null;
+                $order = $chapter['order'] ?? null;
+
+                if (!$chapterId || !$order) {
+                    continue;
+                }
+
+                CourseScormChapter::where('id', $chapterId)
+                    ->where('course_id', $course->id)
+                    ->update(['order' => $order]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Chapter order updated successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Reorder chapters error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to reorder chapters: ' . $e->getMessage()
+            ], 500);
         }
     }
 

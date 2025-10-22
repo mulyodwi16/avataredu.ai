@@ -207,6 +207,45 @@
                                 </div>
                             </div>
                         </div>
+                    @elseif($course->content_type === 'scorm_multi')
+                        {{-- SCORM Multi-Chapter Reorder Section --}}
+                        <div class="space-y-4 border-t border-gray-200 pt-6">
+                            <div class="flex items-center gap-2 mb-4">
+                                <svg class="w-5 h-5 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
+                                </svg>
+                                <h3 class="text-sm font-semibold text-gray-900">SCORM Chapters</h3>
+                                <span class="inline-block px-3 py-1 bg-purple-600 text-white text-xs font-medium rounded-full">{{ count($course->scormChapters ?? []) }} Chapters</span>
+                            </div>
+                            <p class="text-gray-600 text-sm">Drag to reorder chapters. Your changes will be automatically saved.</p>
+
+                            <div id="chapters-sortable" class="space-y-2 mt-4">
+                                @forelse($course->scormChapters ?? [] as $chapter)
+                                    <div class="chapter-item bg-white border-2 border-gray-200 rounded-lg p-4 cursor-move hover:border-purple-400 transition" data-chapter-id="{{ $chapter->id }}" data-order="{{ $chapter->order }}">
+                                        <div class="flex items-center gap-3">
+                                            <svg class="w-5 h-5 text-gray-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                                <path d="M3 3a1 1 0 000 2h11a1 1 0 100-2H3zM3 7a1 1 0 000 2h5a1 1 0 000-2H3zM3 11a1 1 0 100 2h4a1 1 0 100-2H3zM13 16a1 1 0 102 0v-5.586l1.293 1.293a1 1 0 001.414-1.414l-3-3a1 1 0 00-1.414 0l-3 3a1 1 0 101.414 1.414L13 10.414V16z" />
+                                            </svg>
+                                            <div class="flex-1 min-w-0">
+                                                <h4 class="font-medium text-gray-900">{{ $chapter->filename ?? 'Unknown' }}</h4>
+                                                <p class="text-sm text-gray-500">{{ $chapter->scorm_version }} • Order: {{ $chapter->order }}</p>
+                                            </div>
+                                            <span class="inline-block px-3 py-1 bg-gray-100 text-gray-700 text-xs font-medium rounded-full whitespace-nowrap">Chapter {{ $chapter->order }}</span>
+                                        </div>
+                                    </div>
+                                @empty
+                                    <div class="text-center py-8 text-gray-500">
+                                        <p>No chapters yet</p>
+                                    </div>
+                                @endforelse
+                            </div>
+
+                            <div class="p-3 bg-purple-50 rounded-lg border border-purple-200 mt-4">
+                                <p class="text-sm text-purple-800">
+                                    <strong>Tip:</strong> Drag and drop chapters to reorder them. Students will see them in this order.
+                                </p>
+                            </div>
+                        </div>
                     @else
                         {{-- Video Upload Section --}}
                         <div class="space-y-6 border-t border-gray-200 pt-6">
@@ -752,6 +791,79 @@
                 alert('An error occurred while deleting the course.');
             });
         }
+    }
+
+    // Initialize sortable chapters
+    const sortableContainer = document.getElementById('chapters-sortable');
+    if (sortableContainer && document.querySelector('.chapter-item')) {
+        let draggedElement = null;
+
+        const chapterItems = document.querySelectorAll('.chapter-item');
+        
+        function saveChapterOrder() {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            const courseId = "{{ $course->id }}";
+            
+            // Get new order
+            const chapters = document.querySelectorAll('.chapter-item');
+            const order = [];
+            
+            chapters.forEach((item, index) => {
+                const chapterId = item.getAttribute('data-chapter-id');
+                order.push({
+                    id: chapterId,
+                    order: index + 1
+                });
+            });
+
+            console.log('Saving chapter order:', order);
+
+            fetch(`/admin/courses/${courseId}/reorder-chapters`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': csrfToken,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({ chapters: order })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Reorder response:', data);
+                if (!data.success) {
+                    console.error('Failed to save order:', data.error);
+                    alert('Failed to save chapter order: ' + (data.error || 'Unknown error'));
+                    location.reload(); // Reload to revert
+                }
+            })
+            .catch(error => {
+                console.error('Error saving chapter order:', error);
+                alert('An error occurred while saving chapter order');
+                location.reload(); // Reload to revert
+            });
+        }
+        
+        chapterItems.forEach(item => {
+            item.addEventListener('dragstart', function() {
+                draggedElement = this;
+                this.style.opacity = '0.5';
+            });
+
+            item.addEventListener('dragend', function() {
+                this.style.opacity = '1';
+                draggedElement = null;
+            });
+
+            item.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                if (draggedElement && draggedElement !== this) {
+                    this.parentNode.insertBefore(draggedElement, this);
+                    saveChapterOrder();
+                }
+            });
+
+            item.draggable = true;
+        });
     }
 </script>
 @endsection

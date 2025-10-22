@@ -46,30 +46,35 @@
                     <form id="scormUploadForm" enctype="multipart/form-data" class="space-y-6">
                         @csrf
 
-                        {{-- SCORM Package File --}}
+                        {{-- SCORM Packages (Multiple) --}}
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-3">SCORM Package (ZIP) *</label>
-                            <div class="flex items-center justify-center w-full">
-                                <label for="scorm_package"
-                                    class="flex flex-col items-center justify-center w-full h-40 border-2 border-green-300 border-dashed rounded-lg cursor-pointer bg-green-50 hover:bg-green-100 transition">
-                                    <div class="flex flex-col items-center justify-center pt-5 pb-6">
-                                        <svg class="w-10 h-10 mb-3 text-green-600" fill="none" stroke="currentColor"
-                                            viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10">
-                                            </path>
-                                        </svg>
-                                        <p class="mb-2 text-sm font-semibold text-green-700">
-                                            <span>Click to select</span> or drag and drop
-                                        </p>
-                                        <p class="text-xs text-green-600">ZIP file up to 100MB</p>
-                                    </div>
-                                    <input id="scorm_package" name="scorm_package" type="file" class="hidden" accept=".zip"
-                                        required />
-                                </label>
+                            <label class="block text-sm font-medium text-gray-700 mb-3">SCORM Packages (ZIP) * - Upload Multiple Files for Multi-Chapter Course</label>
+                            <div class="space-y-2">
+                                <div class="flex items-center justify-center w-full">
+                                    <label for="scorm_packages"
+                                        class="flex flex-col items-center justify-center w-full h-40 border-2 border-green-300 border-dashed rounded-lg cursor-pointer bg-green-50 hover:bg-green-100 transition">
+                                        <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                                            <svg class="w-10 h-10 mb-3 text-green-600" fill="none" stroke="currentColor"
+                                                viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10">
+                                                </path>
+                                            </svg>
+                                            <p class="mb-2 text-sm font-semibold text-green-700">
+                                                <span>Click to select</span> or drag and drop
+                                            </p>
+                                            <p class="text-xs text-green-600">Multiple ZIP files (each becomes one chapter)</p>
+                                        </div>
+                                        <input id="scorm_packages" name="scorm_packages[]" type="file" class="hidden" accept=".zip"
+                                            multiple required />
+                                    </label>
+                                </div>
+                                <div id="scorm_error" class="text-red-500 text-sm p-3 bg-red-50 rounded hidden"></div>
                             </div>
-                            <div id="scorm_error" class="text-red-500 text-sm mt-2 hidden"></div>
-                            <p id="scorm_filename" class="text-sm text-gray-500 mt-2"></p>
+                            <div id="scorm_filelist" class="mt-4 hidden">
+                                <p class="text-sm font-medium text-gray-700 mb-2">Selected Files: <span id="file_count">0</span></p>
+                                <ul id="scorm_files" class="space-y-1 bg-gray-50 p-3 rounded max-h-48 overflow-y-auto"></ul>
+                            </div>
                         </div>
 
                         {{-- Category Selection --}}
@@ -164,24 +169,55 @@
     </div>
 
     <script>
-        // File input change handler
-        document.getElementById('scorm_package').addEventListener('change', function (e) {
-            const file = e.target.files[0];
-            const filenameEl = document.getElementById('scorm_filename');
-            const errorEl = document.getElementById('scorm_error');
+        // Helper to format file size
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+        }
 
-            if (file) {
-                filenameEl.textContent = `Selected: ${file.name} (${(file.size / (1024 * 1024)).toFixed(2)} MB)`;
-                errorEl.classList.add('hidden');
-                errorEl.textContent = '';
+        // File input change handler for multiple files
+        document.getElementById('scorm_packages').addEventListener('change', function (e) {
+            const files = e.target.files;
+            const filesList = document.getElementById('scorm_files');
+            const fileCount = document.getElementById('file_count');
+            const errorEl = document.getElementById('scorm_error');
+            const filelist = document.getElementById('scorm_filelist');
+            
+            filesList.innerHTML = '';
+            errorEl.classList.add('hidden');
+            errorEl.textContent = '';
+            
+            if (files.length === 0) {
+                filelist.classList.add('hidden');
+                return;
             }
+            
+            let totalSize = 0;
+            for (let i = 0; i < files.length; i++) {
+                totalSize += files[i].size;
+                const li = document.createElement('li');
+                li.className = 'flex items-center gap-2 text-sm text-gray-700 p-2 bg-white rounded';
+                li.innerHTML = `<span class="text-green-600">✓</span> <span class="flex-1 truncate font-medium">${files[i].name}</span> <span class="text-xs text-gray-500 whitespace-nowrap">${formatFileSize(files[i].size)} (Chapter ${i + 1})</span>`;
+                filesList.appendChild(li);
+            }
+            
+            fileCount.textContent = files.length;
+            filelist.classList.remove('hidden');
+            
+            // Info message
+            errorEl.textContent = `ℹ️ Will upload ${files.length} file(s) (Total: ${formatFileSize(totalSize)}) - this may take a few minutes`;
+            errorEl.classList.remove('hidden');
+            errorEl.classList.add('text-blue-600', 'bg-blue-50');
         });
 
-        // Form submit handler
+        // Form submit handler - upload sequentially
         document.getElementById('scormUploadForm').addEventListener('submit', function (e) {
             e.preventDefault();
 
-            const file = document.getElementById('scorm_package').files[0];
+            const files = document.getElementById('scorm_packages').files;
             const categoryId = document.getElementById('scorm_category').value;
             const button = document.getElementById('scormUploadBtn');
             const uploadText = button.querySelector('.upload-text');
@@ -192,26 +228,29 @@
             // Clear previous errors
             errorEl.classList.add('hidden');
             errorEl.textContent = '';
+            errorEl.classList.remove('text-blue-600', 'bg-blue-50');
             categoryErrorEl.classList.add('hidden');
             categoryErrorEl.textContent = '';
 
-            // Validate file
-            if (!file) {
-                errorEl.textContent = 'Please select a SCORM package file';
+            // Validate files
+            if (files.length === 0) {
+                errorEl.textContent = '❌ Please select at least one SCORM package file';
                 errorEl.classList.remove('hidden');
                 return;
             }
 
             // Validate category
             if (!categoryId) {
-                categoryErrorEl.textContent = 'Please select a category';
+                categoryErrorEl.textContent = '❌ Please select a category';
                 categoryErrorEl.classList.remove('hidden');
                 return;
             }
 
-            // Prepare form data
+            // Prepare form data with all files at once
             const formData = new FormData();
-            formData.append('scorm_package', file);
+            for (let i = 0; i < files.length; i++) {
+                formData.append('scorm_packages[]', files[i]);
+            }
             formData.append('category_id', categoryId);
             formData.append('title', document.getElementById('scorm_title').value);
             formData.append('price', document.getElementById('scorm_price').value);
@@ -223,6 +262,10 @@
             button.disabled = true;
             uploadText.classList.add('hidden');
             loadingText.classList.remove('hidden');
+            
+            errorEl.textContent = '⏳ Uploading and processing files... This may take several minutes. Do not close this window.';
+            errorEl.classList.remove('hidden');
+            errorEl.classList.add('text-blue-600', 'bg-blue-50');
 
             // Send request
             fetch('{{ route("admin.courses.create-scorm") }}', {
@@ -234,14 +277,27 @@
                     'Accept': 'application/json'
                 }
             })
-                .then(response => response.json())
+                .then(response => {
+                    console.log('Response status:', response.status);
+                    return response.text().then(text => {
+                        console.log('Response text (first 500 chars):', text.substring(0, 500));
+                        try {
+                            return JSON.parse(text);
+                        } catch (e) {
+                            console.error('JSON parse error:', e);
+                            console.error('Full response:', text);
+                            throw new Error(`Server error (status ${response.status}): ${text.substring(0, 300)}`);
+                        }
+                    });
+                })
                 .then(data => {
                     if (data.success) {
-                        alert('✓ SCORM course created successfully!');
+                        alert(`✓ SCORM course with ${files.length} chapter(s) created successfully!`);
                         window.location.href = data.redirect;
                     } else {
-                        errorEl.textContent = data.error || 'Upload failed';
+                        errorEl.textContent = `❌ ${data.error || 'Upload failed'}`;
                         errorEl.classList.remove('hidden');
+                        errorEl.classList.remove('text-blue-600', 'bg-blue-50');
                         button.disabled = false;
                         uploadText.classList.remove('hidden');
                         loadingText.classList.add('hidden');
@@ -249,8 +305,9 @@
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    errorEl.textContent = 'An error occurred: ' + error.message;
+                    errorEl.textContent = `❌ ${error.message}`;
                     errorEl.classList.remove('hidden');
+                    errorEl.classList.remove('text-blue-600', 'bg-blue-50');
                     button.disabled = false;
                     uploadText.classList.remove('hidden');
                     loadingText.classList.add('hidden');

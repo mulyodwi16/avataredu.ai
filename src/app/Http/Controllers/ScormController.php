@@ -54,9 +54,18 @@ class ScormController extends Controller
             // Prevent directory traversal attacks
             $path = str_replace('..', '', $path);
 
-            // Extract folder name from package path (e.g., "scorm/scorm_123" -> "scorm_123")
-            $folderName = basename($course->scorm_package_path);
-            $filePath = $folderName . '/' . $path;
+            // Check if path already contains a folder name (multi-chapter case)
+            // If so, use it as-is. Otherwise, prepend the course's package path (single-chapter case)
+            $folderName = 'auto-detected';
+            if (strpos($path, '/') !== false && strpos($path, 'scorm_') === 0) {
+                // Path already has folder name (e.g., "scorm_123/index.html" from multi-chapter)
+                $filePath = $path;
+                $folderName = 'multi-chapter';
+            } else {
+                // Single chapter case - prepend the course's package path
+                $folderName = basename($course->scorm_package_path);
+                $filePath = $folderName . '/' . $path;
+            }
 
             \Log::info('Serving file', [
                 'folderName' => $folderName,

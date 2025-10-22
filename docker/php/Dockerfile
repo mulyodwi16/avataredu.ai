@@ -7,6 +7,6 @@ RUN apk add --no-cache \
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
-RUN printf "memory_limit=512M\nupload_max_filesize=120M\npost_max_size=120M\nmax_execution_time=300\n" > /usr/local/etc/php/conf.d/laravel.ini
+RUN printf "memory_limit=512M\nupload_max_filesize=1000M\npost_max_size=1000M\nmax_execution_time=300\n" > /usr/local/etc/php/conf.d/laravel.ini
 
 WORKDIR /var/www/html

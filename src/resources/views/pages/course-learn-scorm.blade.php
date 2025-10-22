@@ -89,7 +89,11 @@
                                     <!-- Chapter Info -->
                                     <div class="flex-1 min-w-0">
                                         <div class="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors truncate">
-                                            {{ $chapter->title }}
+                                            @if($course->content_type === 'scorm_multi' && isset($chapter->order))
+                                                Chapter {{ $chapter->order }}
+                                            @else
+                                                {{ $chapter->title }}
+                                            @endif
                                         </div>
                                         @if($chapter->duration_minutes ?? false)
                                             <div class="text-xs text-gray-500 mt-1">
@@ -202,7 +206,13 @@
                                 <div class="space-y-4">
                                     <div>
                                         <p class="text-sm text-gray-600">Title</p>
-                                        <p class="font-medium text-gray-900" id="chapter-title">{{ $currentChapter->title ?? 'N/A' }}</p>
+                                        <p class="font-medium text-gray-900" id="chapter-title">
+                                            @if($course->content_type === 'scorm_multi' && isset($currentChapter->order))
+                                                Chapter {{ $currentChapter->order }}
+                                            @else
+                                                {{ $currentChapter->title ?? 'N/A' }}
+                                            @endif
+                                        </p>
                                     </div>
                                     @if($currentChapter->duration_minutes ?? false)
                                         <div>
