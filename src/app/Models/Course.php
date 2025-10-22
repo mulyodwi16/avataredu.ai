@@ -98,6 +98,14 @@ class Course extends Model
         return $this->hasMany(CourseChapter::class)->orderBy('order');
     }
 
+    /**
+     * Get the SCORM chapters for this course
+     */
+    public function scormChapters(): HasMany
+    {
+        return $this->hasMany(CourseScormChapter::class)->orderBy('order');
+    }
+
     public function institutions(): BelongsToMany
     {
         return $this->belongsToMany(Institution::class, 'institution_courses')

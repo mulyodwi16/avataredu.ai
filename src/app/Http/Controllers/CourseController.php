@@ -31,9 +31,40 @@ class CourseController extends Controller
             return redirect()->route('dashboard')->with('error', 'You are not enrolled in this course.');
         }
 
-        // If it's a SCORM course, display it directly
-        if ($course->content_type === 'scorm' && $course->scorm_package_path) {
+        // If it's a SCORM course (single or multi-chapter), display it with chapters sidebar
+        $hasScormChapters = $course->scormChapters()->exists();
+        $hasRegularChapters = $course->chapters()->exists();
+
+        \Log::info('SCORM check', [
+            'course_id' => $course->id,
+            'content_type' => $course->content_type,
+            'is_scorm_or_multi' => in_array($course->content_type, ['scorm', 'scorm_multi']),
+            'has_scorm_package_path' => !empty($course->scorm_package_path),
+            'has_scorm_chapters' => $hasScormChapters,
+            'has_regular_chapters' => $hasRegularChapters
+        ]);
+
+        if (
+            in_array($course->content_type, ['scorm', 'scorm_multi']) &&
+            ($course->scorm_package_path || $hasScormChapters || $hasRegularChapters)
+        ) {
             \Log::info('Serving SCORM course', ['course_id' => $course->id]);
+
+            // Load SCORM chapters for this course (prefer scormChapters if they exist, otherwise load regular chapters)
+            $course->load([
+                'scormChapters' => function ($query) {
+                    $query->orderBy('order');
+                },
+                'chapters' => function ($query) {
+                    $query->orderBy('order');
+                    $query->with([
+                        'lessons' => function ($q) {
+                            $q->orderBy('order');
+                        }
+                    ]);
+                }
+            ]);
+
             return view('pages.course-learn-scorm', compact('course', 'enrollment'));
         }
 
