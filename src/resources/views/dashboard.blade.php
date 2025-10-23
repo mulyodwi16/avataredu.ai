@@ -7,30 +7,10 @@
     {{-- Dashboard Content --}}
     <div class="space-y-8" data-content>
 
-        {{-- Hero Banner --}}
-        <section class="bg-night/90 text-white rounded-2xl shadow overflow-hidden relative">
-            <div class="grid md:grid-cols-[1fr,1.3fr]">
-                <div class="p-8 md:p-10">
-                    <h2 class="text-2xl md:text-3xl font-extrabold mb-3">
-                        Unlock Your Career Potential with Kirana!
-                    </h2>
-                    <p class="text-white/80 mb-6">
-                        Explore a career path tailored to your skills and ambitions. Get a personalized roadmap and
-                        course suggestions to achieve your goals.
-                    </p>
-                    <a href="#"
-                        class="inline-block bg-accent text-white font-semibold px-5 py-2 rounded-xl hover:opacity-90">
-                        Click here to start!
-                    </a>
-                </div>
-                <div class="relative p-6 md:p-8">
-                    <img src="https://via.placeholder.com/520x260.png?text=Hero+Banner"
-                        class="w-full h-56 md:h-full object-cover rounded-xl" alt="hero">
-                    {{-- decorative --}}
-                    <div class="hidden md:block absolute -right-6 -bottom-6 w-40 h-40 rounded-full bg-accent/30 blur-2xl">
-                    </div>
-                </div>
-            </div>
+        {{-- Welcome Banner --}}
+        <section class="bg-gradient-to-r from-primary to-primaryDark text-white rounded-2xl shadow overflow-hidden p-8">
+            <h2 class="text-3xl md:text-4xl font-bold mb-2">Welcome back, {{ auth()->user()->name }}!</h2>
+            <p class="text-white/90 text-lg">Continue your learning journey</p>
         </section>
 
         {{-- Learning Statistics --}}
@@ -107,7 +87,7 @@
             @if($recentCourses && $recentCourses->count() > 0)
                 <div
                     class="flex gap-6 overflow-x-auto snap-x snap-mandatory scroll-smooth pb-2
-                                                                                    md:grid md:grid-cols-3 xl:grid-cols-4 md:overflow-visible md:snap-none">
+                                                                                            md:grid md:grid-cols-3 xl:grid-cols-4 md:overflow-visible md:snap-none">
                     @foreach($recentCourses as $course)
                         <x-course-card :course="$course" :show-progress="true" :progress="$course->pivot->progress_percentage ?? 0"
                             class="min-w-[280px] snap-start md:min-w-0" />
@@ -140,7 +120,7 @@
 
                 <div
                     class="flex gap-6 overflow-x-auto snap-x snap-mandatory scroll-smooth pb-2
-                                                                                md:grid md:grid-cols-3 xl:grid-cols-4 md:overflow-visible md:snap-none">
+                                                                                        md:grid md:grid-cols-3 xl:grid-cols-4 md:overflow-visible md:snap-none">
                     @foreach($recommendations as $course)
                         <x-course-card :course="$course" class="min-w-[280px] snap-start md:min-w-0" />
                     @endforeach
@@ -159,7 +139,7 @@
 
                 <div
                     class="flex gap-6 overflow-x-auto snap-x snap-mandatory scroll-smooth pb-2
-                                                                                md:grid md:grid-cols-3 xl:grid-cols-4 md:overflow-visible md:snap-none">
+                                                                                        md:grid md:grid-cols-3 xl:grid-cols-4 md:overflow-visible md:snap-none">
                     @foreach($featuredCourses as $course)
                         <x-course-card :course="$course" class="min-w-[280px] snap-start md:min-w-0" />
                     @endforeach

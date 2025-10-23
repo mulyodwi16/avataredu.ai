@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Http\Request;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Auth\GoogleController;
 use App\Http\Controllers\ForgotPasswordController;
@@ -107,6 +108,7 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
         Route::delete('/api/courses/{course}', [App\Http\Controllers\Admin\AdminDashboardApiController::class, 'deleteCourse'])->name('courses.api.delete');
 
         // User Management API (Super Admin only)
+        Route::get('/api/users/{user}', [App\Http\Controllers\Admin\AdminDashboardApiController::class, 'getUser'])->name('users.api.get');
         Route::post('/api/users', [App\Http\Controllers\Admin\AdminDashboardApiController::class, 'createUser'])->name('users.api.create');
         Route::put('/api/users/{user}', [App\Http\Controllers\Admin\AdminDashboardApiController::class, 'updateUser'])->name('users.api.update');
         Route::delete('/api/users/{user}', [App\Http\Controllers\Admin\AdminDashboardApiController::class, 'deleteUser'])->name('users.api.delete');
@@ -148,6 +150,40 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
         Route::get('/users', [App\Http\Controllers\Admin\UserController::class, 'index'])->name('users.index');
         Route::get('/users/{user}', [App\Http\Controllers\Admin\UserController::class, 'show'])->name('users.show');
         Route::put('/users/{user}', [App\Http\Controllers\Admin\UserController::class, 'update'])->name('users.update');
+
+        // API Routes for Chapters
+        Route::get('/api/courses/{courseId}/chapters', function (Request $request, $courseId) {
+            try {
+                $chapters = \App\Models\CourseChapter::where('course_id', $courseId)
+                    ->orderBy('order')
+                    ->get()
+                    ->map(function ($chapter) {
+                        return [
+                            'id' => $chapter->id,
+                            'title' => $chapter->title
+                        ];
+                    });
+
+                return response()->json([
+                    'success' => true,
+                    'chapters' => $chapters
+                ]);
+            } catch (\Exception $e) {
+                \Log::error('Get course chapters error: ' . $e->getMessage());
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Error loading chapters'
+                ], 500);
+            }
+        })->name('api.courses.chapters');
+
+        // Pages Management
+        Route::get('/pages', [App\Http\Controllers\Admin\AdminPagesController::class, 'index'])->name('pages.index');
+        Route::post('/pages', [App\Http\Controllers\Admin\AdminPagesController::class, 'store'])->name('pages.store');
+        Route::get('/pages/create', [App\Http\Controllers\Admin\AdminPagesController::class, 'create'])->name('pages.create');
+        Route::get('/pages/{page}/edit', [App\Http\Controllers\Admin\AdminPagesController::class, 'edit'])->name('pages.edit');
+        Route::put('/pages/{page}', [App\Http\Controllers\Admin\AdminPagesController::class, 'update'])->name('pages.update');
+        Route::delete('/pages/{page}', [App\Http\Controllers\Admin\AdminPagesController::class, 'destroy'])->name('pages.destroy');
 
         // Category Management
         Route::get('/categories', [App\Http\Controllers\Admin\CategoryController::class, 'index'])->name('categories.index');

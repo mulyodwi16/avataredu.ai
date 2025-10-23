@@ -97,10 +97,8 @@
                             <div class="flex justify-between items-center">
                                 <span class="text-xs text-gray-500">{{ $course->updated_at->format('M d, Y') }}</span>
                                 <div class="flex gap-2">
-                                    <button onclick="loadAdminPage('courses/{{ $course->id }}')"
-                                        class="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded transition-colors">View</button>
                                     <a href="/admin/dashboard/editcourse/{{ $course->id }}"
-                                        class="text-xs px-2 py-1 bg-primary hover:bg-primary/90 text-white rounded transition-colors text-center">Edit</a>
+                                        class="text-xs px-2 py-1 bg-primary hover:bg-primary/90 text-white rounded transition-colors text-center flex-1">Edit</a>
                                 </div>
                             </div>
                         </div>

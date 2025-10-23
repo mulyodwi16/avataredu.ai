@@ -62,20 +62,22 @@ class CourseController extends Controller
                             $q->orderBy('order');
                         }
                     ]);
-                }
+                },
+                'pages'
             ]);
 
             return view('pages.course-learn-scorm', compact('course', 'enrollment'));
         }
 
-        // Get course with chapters and lessons
+        // Get course with chapters, lessons, and pages
         $course->load([
             'chapters' => function ($query) {
                 $query->orderBy('order');
             },
             'chapters.lessons' => function ($query) {
                 $query->orderBy('order');
-            }
+            },
+            'pages'
         ]);
 
         // Get user's lesson progress (only if course has lessons)

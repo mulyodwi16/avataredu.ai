@@ -87,6 +87,16 @@
                                 </svg>
                                 <span class="font-medium">Manage Users</span>
                             </button>
+
+                            <button onclick="loadAdminPage('pages')"
+                                class="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-700 hover:bg-primary/5 hover:text-primary transition-colors w-full text-left"
+                                data-admin-page="pages">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                <span class="font-medium">Pages</span>
+                            </button>
                         @endif
                     </nav>
 
@@ -200,7 +210,8 @@
             const pageTitles = {
                 'dashboard': 'Dashboard Overview',
                 'courses': 'Manage Courses',
-                'users': 'Manage Users'
+                'users': 'Manage Users',
+                'pages': 'Pages'
             };
 
             const titleElement = document.querySelector('h1');
@@ -242,7 +253,8 @@
                     })
                     .then(data => {
                         if (data.html) {
-                            contentDiv.innerHTML = data.html;
+                            // Insert HTML and execute any scripts inside the returned HTML
+                            setContentWithScripts(contentDiv, data.html);
                         } else {
                             throw new Error('No content received');
                         }
@@ -284,6 +296,47 @@
             if (mobileSidebar && !mobileSidebar.classList.contains('hidden')) {
                 toggleSidebar();
             }
+        }
+
+        // Helper: insert HTML into container and execute inline/external scripts
+        function setContentWithScripts(container, html) {
+            // Create a template and parse
+            const template = document.createElement('template');
+            template.innerHTML = html.trim();
+
+            // Move non-script nodes
+            const nodes = Array.from(template.content.childNodes).filter(n => n.nodeName.toLowerCase() !== 'script');
+            container.innerHTML = '';
+            nodes.forEach(n => container.appendChild(document.importNode(n, true)));
+
+            // Handle script tags: inline and external
+            const scriptTags = template.content.querySelectorAll('script');
+            scriptTags.forEach(script => {
+                const newScript = document.createElement('script');
+                // copy attributes
+                for (let i = 0; i < script.attributes.length; i++) {
+                    const attr = script.attributes[i];
+                    newScript.setAttribute(attr.name, attr.value);
+                }
+
+                if (script.src) {
+                    // External script: append and wait for load
+                    newScript.src = script.src;
+                    newScript.onload = () => {
+                        // nothing - script executed
+                    };
+                    newScript.onerror = () => console.error('Failed to load script', script.src);
+                    document.body.appendChild(newScript);
+                } else {
+                    // Inline script: set textContent and append
+                    try {
+                        newScript.textContent = script.textContent;
+                        document.body.appendChild(newScript);
+                    } catch (e) {
+                        console.error('Error executing inline script', e);
+                    }
+                }
+            });
         }
 
         // Initialize on page load

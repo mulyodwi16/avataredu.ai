@@ -9,6 +9,7 @@ use App\Models\Course;
 use App\Models\CourseScormChapter;
 use App\Models\User;
 use App\Models\Category;
+use App\Models\Page;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Hash;
@@ -133,6 +134,16 @@ class AdminDashboardApiController extends Controller
                         return $this->getCourseEditContent($parts[1]);
                     } elseif (count($parts) === 3 && $parts[2] === 'content') {
                         return $this->getCourseContentManagement($parts[1]);
+                    }
+                    break;
+
+                case 'pages':
+                    if (count($parts) === 1) {
+                        return $this->getPagesContent();
+                    } elseif (count($parts) === 2 && $parts[1] === 'create') {
+                        return $this->getCreatePageContent();
+                    } elseif (count($parts) === 3 && $parts[2] === 'edit') {
+                        return $this->getEditPageContent($parts[1]);
                     }
                     break;
 
@@ -1087,6 +1098,29 @@ class AdminDashboardApiController extends Controller
     /**
      * Update user (super admin only)
      */
+    public function getUser(User $user): JsonResponse
+    {
+        try {
+            if (!auth()->user()->isSuperAdmin()) {
+                return response()->json(['error' => 'Access denied'], 403);
+            }
+
+            return response()->json([
+                'success' => true,
+                'user' => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'role' => $user->role
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Get user error: ' . $e->getMessage());
+            return response()->json(['error' => 'Failed to fetch user: ' . $e->getMessage()], 500);
+        }
+    }
+
     public function updateUser(Request $request, User $user): JsonResponse
     {
         try {
@@ -1124,19 +1158,20 @@ class AdminDashboardApiController extends Controller
     {
         try {
             if (!auth()->user()->isSuperAdmin()) {
-                return response()->json(['error' => 'Access denied'], 403);
+                return response()->json(['success' => false, 'error' => 'Access denied'], 403);
             }
 
             // Prevent deleting self
             if ($user->id === auth()->id()) {
-                return response()->json(['error' => 'Cannot delete your own account'], 400);
+                return response()->json(['success' => false, 'error' => 'Cannot delete your own account'], 400);
             }
 
             // Check if user has enrollments
             $enrollmentCount = $user->enrollments()->count();
             if ($enrollmentCount > 0) {
                 return response()->json([
-                    'error' => "Cannot delete user '{$user->name}'. User has {$enrollmentCount} active enrollment(s)."
+                    'success' => false,
+                    'error' => "Cannot delete user '{$user->name}'. User has {$enrollmentCount} active enrollment(s). Please remove all enrollments first."
                 ], 400);
             }
 
@@ -1150,7 +1185,7 @@ class AdminDashboardApiController extends Controller
 
         } catch (\Exception $e) {
             \Log::error('Delete user error: ' . $e->getMessage());
-            return response()->json(['error' => 'Failed to delete user: ' . $e->getMessage()], 500);
+            return response()->json(['success' => false, 'error' => 'Failed to delete user: ' . $e->getMessage()], 500);
         }
     }
 
@@ -1207,4 +1242,52 @@ class AdminDashboardApiController extends Controller
         }
     }
 
+    /**
+     * Get pages content for admin pages list
+     */
+    private function getPagesContent()
+    {
+        try {
+            $pages = Page::orderBy('created_at', 'desc')->get();
+            $html = view('admin.partials.pages-content', compact('pages'))->render();
+
+            return response()->json(['html' => $html]);
+        } catch (\Exception $e) {
+            \Log::error('Get pages content error: ' . $e->getMessage());
+            return response()->json(['error' => 'Error loading pages: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Get create page form content
+     */
+    private function getCreatePageContent()
+    {
+        try {
+            $courses = \App\Models\Course::orderBy('title')->get();
+            $html = view('admin.pages.create-page', compact('courses'))->render();
+            return response()->json(['html' => $html]);
+        } catch (\Exception $e) {
+            \Log::error('Get create page content error: ' . $e->getMessage());
+            return response()->json(['error' => 'Error loading form: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Get edit page form content
+     */
+    private function getEditPageContent($pageSlug)
+    {
+        try {
+            $page = Page::where('slug', $pageSlug)->firstOrFail();
+            $courses = \App\Models\Course::orderBy('title')->get();
+            $html = view('admin.pages.edit-page', compact('page', 'courses'))->render();
+            return response()->json(['html' => $html]);
+        } catch (\Exception $e) {
+            \Log::error('Get edit page content error: ' . $e->getMessage());
+            return response()->json(['error' => 'Error loading page: ' . $e->getMessage()], 500);
+        }
+    }
+
 }
+

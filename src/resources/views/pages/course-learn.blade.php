@@ -137,6 +137,55 @@
                                 </div>
                             </div>
                         @endforeach
+
+                        <!-- Pages/Assignments Section -->
+                        @if($course->pages && $course->pages->count() > 0)
+                            <div class="mb-8">
+                                <h3 class="font-bold text-gray-900 mb-4 text-lg border-b border-gray-100 pb-2">
+                                    <span class="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                                        Assignments
+                                    </span>
+                                </h3>
+                                <div class="space-y-3">
+                                    @foreach($course->pages as $page)
+                                        @php
+                                            $isCurrent = request()->get('page') == $page->slug;
+                                        @endphp
+                                        <div class="group flex items-center gap-4 p-4 rounded-xl cursor-pointer transition-all duration-200
+                                                    {{ $isCurrent ? 'bg-gradient-to-r from-orange-50 to-red-50 border-2 border-orange-200 shadow-md transform scale-[1.02]' : 'hover:bg-gray-50 hover:shadow-sm border border-transparent' }}"
+                                             onclick="loadPage('{{ $page->slug }}')">
+                                            <!-- Assignment Icon -->
+                                            <div class="flex-shrink-0">
+                                                @if($isCurrent)
+                                                    <div class="w-6 h-6 border-2 border-orange-400 rounded-full bg-white flex items-center justify-center">
+                                                        <div class="w-2 h-2 bg-orange-400 rounded-full"></div>
+                                                    </div>
+                                                @else
+                                                    <div class="w-6 h-6 bg-gradient-to-r from-orange-400 to-red-500 rounded-full flex items-center justify-center shadow-lg group-hover:border-orange-300 transition-colors">
+                                                        <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                                            <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
+                                                            <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 1 1 0 000-2A4 4 0 000 5v10a4 4 0 004 4h12a4 4 0 004-4V5a4 4 0 00-4-4 1 1 0 000 2 2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2V5z" clip-rule="evenodd"></path>
+                                                        </svg>
+                                                    </div>
+                                                @endif
+                                            </div>
+
+                                            <!-- Assignment Info -->
+                                            <div class="flex-1 min-w-0">
+                                                <div class="font-semibold text-gray-900 group-hover:text-orange-600 transition-colors truncate">
+                                                    {{ $page->title }}
+                                                </div>
+                                                <div class="flex items-center gap-3 mt-1">
+                                                    <div class="text-xs text-orange-600 bg-orange-50 px-2 py-1 rounded-full">
+                                                        Assignment
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endif
                     @elseif($course->main_video_url)
                         <!-- Enhanced Simple Video Course -->
                         <div class="mb-6">
@@ -288,11 +337,45 @@
                     {{-- Regular Course Display --}}
                     @elseif($course->chapters->flatMap->lessons->count() > 0)
                         @php
+                            $currentPageSlug = request()->get('page');
                             $currentLessonId = request()->get('lesson') ?? $course->chapters->first()?->lessons->first()?->id;
-                            $currentLesson = $course->chapters->flatMap->lessons->where('id', $currentLessonId)->first();
+                            $currentLesson = !$currentPageSlug ? $course->chapters->flatMap->lessons->where('id', $currentLessonId)->first() : null;
+                            $currentPage = $currentPageSlug ? $course->pages->where('slug', $currentPageSlug)->first() : null;
                         @endphp
 
-                        @if($currentLesson)
+                        {{-- Display Page if Page Slug is in URL --}}
+                        @if($currentPage)
+                            <!-- Enhanced Page Header -->
+                            <div class="mb-8">
+                                <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 lg:p-8">
+                                    <h1 class="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">{{ $currentPage->title }}</h1>
+                                    <div class="flex items-center gap-4 text-sm text-gray-600">
+                                        <span class="inline-block bg-orange-100 text-orange-800 px-3 py-1 rounded-full font-semibold">
+                                            Assignment
+                                        </span>
+                                        <span>Created on {{ $currentPage->created_at->format('M d, Y') }}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Page Content -->
+                            <div class="mb-8">
+                                <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 lg:p-8">
+                                    <div class="prose prose-sm lg:prose-base max-w-none">
+                                        {!! $currentPage->content !!}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Back to Course Content Button -->
+                            <div class="flex justify-center">
+                                <button onclick="window.location.href = window.location.pathname"
+                                    class="px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-200 font-semibold shadow-md">
+                                    ← Back to Course Content
+                                </button>
+                            </div>
+                        {{-- Display Lesson if Lesson ID is in URL and no Page is selected --}}
+                        @elseif($currentLesson)
                             <!-- Enhanced Lesson Header -->
                             <div class="mb-8">
                                 <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 lg:p-8">
@@ -408,8 +491,8 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
                                     </svg>
                                 </div>
-                                <h3 class="text-2xl font-bold text-gray-900 mb-4">Select a lesson to start learning</h3>
-                                <p class="text-gray-500 text-lg">Choose a lesson from the sidebar to begin your learning journey.</p>
+                                <h3 class="text-2xl font-bold text-gray-900 mb-4">Select a lesson or assignment to start learning</h3>
+                                <p class="text-gray-500 text-lg">Choose a lesson or assignment from the sidebar to begin your learning journey.</p>
                             </div>
                         @endif
                     @elseif($course->main_video_url)
@@ -517,6 +600,14 @@
         function loadLesson(lessonId) {
             const currentUrl = new URL(window.location);
             currentUrl.searchParams.set('lesson', lessonId);
+            currentUrl.searchParams.delete('page');
+            window.location.href = currentUrl.toString();
+        }
+
+        function loadPage(pageId) {
+            const currentUrl = new URL(window.location);
+            currentUrl.searchParams.set('page', pageId);
+            currentUrl.searchParams.delete('lesson');
             window.location.href = currentUrl.toString();
         }
 

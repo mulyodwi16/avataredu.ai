@@ -117,11 +117,6 @@
 
                             <!-- Action Buttons -->
                             <div class="flex gap-2">
-                                <button onclick="loadAdminPage('courses/{{ $course->id }}')"
-                                    class="flex-1 text-sm px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors">
-                                    View
-                                </button>
-                                
                                 @if($course->creator_id === auth()->id())
                                     <!-- Admin bisa edit course mereka sendiri -->
                                     <a href="/admin/dashboard/editcourse/{{ $course->id }}"

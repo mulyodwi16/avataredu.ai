@@ -112,6 +112,51 @@
                             <p class="text-gray-500 text-sm">No chapters available</p>
                         </div>
                     @endif
+
+                    <!-- Pages/Assignments Section -->
+                    @if($course->pages && $course->pages->count() > 0)
+                        <div class="mt-8 pt-6 border-t border-gray-200">
+                            <h3 class="font-bold text-gray-900 mb-4 text-sm uppercase tracking-wide">
+                                <span class="text-orange-600">Assignments</span>
+                            </h3>
+                            <div class="space-y-3">
+                                @foreach($course->pages as $page)
+                                    @php
+                                        $isCurrent = request()->get('page') == $page->slug;
+                                    @endphp
+                                    <div class="group flex items-center gap-4 p-4 rounded-xl cursor-pointer transition-all duration-200
+                                                {{ $isCurrent ? 'bg-gradient-to-r from-orange-50 to-red-50 border-2 border-orange-200 shadow-md transform scale-[1.02]' : 'hover:bg-gray-50 hover:shadow-sm border border-transparent' }}"
+                                         onclick="loadPage('{{ $page->slug }}')">
+                                        <!-- Assignment Icon -->
+                                        <div class="flex-shrink-0">
+                                            @if($isCurrent)
+                                                <div class="w-6 h-6 border-2 border-orange-400 rounded-full bg-white flex items-center justify-center">
+                                                    <div class="w-2 h-2 bg-orange-400 rounded-full"></div>
+                                                </div>
+                                            @else
+                                                <div class="w-6 h-6 bg-gradient-to-r from-orange-400 to-red-500 rounded-full flex items-center justify-center shadow-lg">
+                                                    <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
+                                                        <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 1 1 0 000-2A4 4 0 000 5v10a4 4 0 004 4h12a4 4 0 004-4V5a4 4 0 00-4-4 1 1 0 000 2 2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2V5z" clip-rule="evenodd"></path>
+                                                    </svg>
+                                                </div>
+                                            @endif
+                                        </div>
+
+                                        <!-- Assignment Info -->
+                                        <div class="flex-1 min-w-0">
+                                            <div class="font-semibold text-gray-900 group-hover:text-orange-600 transition-colors truncate">
+                                                {{ $page->title }}
+                                            </div>
+                                            <div class="text-xs text-orange-600 mt-1">
+                                                Assignment
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
                 </div>
             </div>
 
@@ -148,6 +193,46 @@
 
                 <!-- Main Content -->
                 <main class="px-4 sm:px-6 lg:px-8 py-8">
+                    @php
+                        $currentPageSlug = request()->get('page');
+                        $selectedChapterId = request('chapter');
+                        $currentPage = $currentPageSlug ? $course->pages->firstWhere('slug', $currentPageSlug) : null;
+                    @endphp
+
+                    {{-- Display Page if Page Slug is in URL --}}
+                    @if($currentPage)
+                        <!-- Enhanced Page Header -->
+                        <div class="mb-8">
+                            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 lg:p-8">
+                                <h1 class="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">{{ $currentPage->title }}</h1>
+                                <div class="flex items-center gap-4 text-sm text-gray-600">
+                                    <span class="inline-block bg-orange-100 text-orange-800 px-3 py-1 rounded-full font-semibold">
+                                        Assignment
+                                    </span>
+                                    <span>Created on {{ $currentPage->created_at->format('M d, Y') }}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Page Content -->
+                        <div class="mb-8">
+                            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 lg:p-8">
+                                <div class="prose prose-sm lg:prose-base max-w-none">
+                                    {!! $currentPage->content !!}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Back to Course Content Button -->
+                        <div class="flex justify-center">
+                            <button onclick="window.location.href = window.location.pathname"
+                                class="px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-200 font-semibold shadow-md">
+                                ← Back to Course Content
+                            </button>
+                        </div>
+
+                    {{-- Display SCORM if no Page is selected --}}
+                    @else
                     <!-- SCORM Package Container -->
                     <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                         {{-- Display SCORM Entry Point --}}
@@ -240,6 +325,7 @@
                             Return to Dashboard
                         </a>
                     </div>
+                    @endif
                 </main>
             </div>
         </div>
@@ -264,6 +350,19 @@
 
             // Load the chapter
             window.location.href = `?chapter=${chapterId}`;
+        }
+
+        function loadPage(pageId) {
+            // Close mobile sidebar
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            if (window.innerWidth < 1024) {
+                sidebar.classList.add('-translate-x-full');
+                overlay.classList.add('hidden');
+            }
+
+            // Load the page
+            window.location.href = `?page=${pageId}`;
         }
 
         document.getElementById('mobile-menu-toggle').addEventListener('click', toggleSidebar);

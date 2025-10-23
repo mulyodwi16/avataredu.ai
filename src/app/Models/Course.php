@@ -95,7 +95,15 @@ class Course extends Model
      */
     public function chapters(): HasMany
     {
-        return $this->hasMany(CourseChapter::class)->orderBy('order');
+        return $this->hasMany(CourseChapter::class);
+    }
+
+    /**
+     * Get the pages/assignments for this course
+     */
+    public function pages(): HasMany
+    {
+        return $this->hasMany(Page::class);
     }
 
     /**

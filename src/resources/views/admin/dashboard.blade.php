@@ -120,19 +120,9 @@
                                 <div class="absolute top-2 left-2">
                                     <span
                                         class="text-xs px-2 py-1 rounded-full 
-                                                                                                                        {{ $course->is_published ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800' }}">
+                                                                                                                                    {{ $course->is_published ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800' }}">
                                         {{ $course->is_published ? 'Published' : 'Draft' }}
                                     </span>
-                                </div>
-                                <div class="absolute top-2 right-2">
-                                    <button onclick="loadAdminPage('courses/{{ $course->id }}/edit')"
-                                        class="p-2 bg-white/90 rounded-lg hover:bg-white">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z">
-                                            </path>
-                                        </svg>
-                                    </button>
                                 </div>
                             </div>
                             <div class="p-4">
@@ -160,12 +150,8 @@
                                         @endif
                                     </span>
                                     <div class="flex gap-2">
-                                        <button onclick="viewCourseDetails({{ $course->id }})"
-                                            class="text-sm px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200">
-                                            View
-                                        </button>
                                         <button onclick="editCourse({{ $course->id }})"
-                                            class="text-sm px-3 py-1.5 rounded-lg bg-primary text-white hover:bg-primaryDark">
+                                            class="text-sm px-3 py-1.5 rounded-lg bg-primary text-white hover:bg-primaryDark flex-1">
                                             Edit
                                         </button>
                                     </div>
